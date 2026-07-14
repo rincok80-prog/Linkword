@@ -110,7 +110,7 @@ module.exports = (req, res) => {
             const data = JSON.parse(responseData);
             let jsonText = data.choices?.[0]?.message?.content || '';
             
-            jsonText = jsonText.strip();
+            jsonText = jsonText.trim();
             const firstBrace = jsonText.indexOf('{');
             const lastBrace = jsonText.lastIndexOf('}');
             if (firstBrace !== -1 && lastBrace !== -1) {
