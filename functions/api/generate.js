@@ -30,10 +30,11 @@ export async function onRequestPost(context) {
             });
         }
         
-        // Use SiliconFlow key from env
-        const apiKey = env.SILICONFLOW_KEY || "";
-        if (!apiKey) {
-            return new Response(JSON.stringify({ error: 'Missing SILICONFLOW_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
+        // Environment Variable priority
+        const GEMINI_KEY = env.GEMINI_KEY || "";
+        
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
                 status: 400,
                 headers: corsHeaders
             });
@@ -57,34 +58,38 @@ export async function onRequestPost(context) {
   ]
 }
 
-注意：故事必须 logic 通顺，所有英文句子和例句必须非常简单易懂。为了防止 JSON 解析失败，如果英文故事或例句中需要使用引号，请必须使用单引号（'），绝对不要在 JSON 的属性值内直接使用未转义的双引号（"）。`;
+注意：故事必须逻辑通顺，所有英文句子和例句必须非常简单易懂。为了防止 JSON 解析失败，如果英文故事或例句中需要使用引号，请必须使用单引号（'），绝对不要在 JSON 的属性值内直接使用未转义的双引号（"）。`;
 
-        // Use permanently free model Qwen2.5-7B-Instruct
-        const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+        // Use stable high-quota gemini-3.1-flash-lite
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'Qwen/Qwen2.5-7B-Instruct',
-                messages: [
+                contents: [
                     {
-                        role: 'user',
-                        content: prompt
+                        parts: [
+                            {
+                                text: prompt
+                            }
+                        ]
                     }
                 ],
-                temperature: 0.5
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.5
+                }
             })
         });
         
         const respText = await response.text();
         if (response.status !== 200) {
-            throw new Error(`SiliconFlow error (HTTP ${response.status}): ${respText}`);
+            throw new Error(`Gemini API error (HTTP ${response.status}): ${respText}`);
         }
         
         const data = JSON.parse(respText);
-        let jsonText = data.choices?.[0]?.message?.content || '';
+        let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
         jsonText = jsonText.trim();
         const firstBrace = jsonText.indexOf('{');
