@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    // TTS Reader with triple fallbacks (Youdao API -> Baidu TTS -> Native WebSpeech)
+    // TTS Reader using secure serverless proxy (falls back to native WebSpeech)
     function speakText(text) {
         if (!text) return;
         
@@ -420,29 +420,19 @@ document.addEventListener('DOMContentLoaded', () => {
             window.speechSynthesis.cancel();
         } catch(e) {}
         
-        // Clean text (remove HTML tags)
-        const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").trim();
+        // Clean text (remove HTML tags) and limit to 200 chars for Google Translate
+        const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").trim().substring(0, 200);
         
-        // Audio URLs
-        const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleanText)}&type=2`;
-        const baiduUrl = `https://tts.baidu.com/text2audio?tex=${encodeURIComponent(cleanText)}&lan=en&spd=4`;
+        // Use our high-quality, China-accessible serverless TTS proxy
+        const proxyTtsUrl = `/api/tts?text=${encodeURIComponent(cleanText)}`;
         
-        // Create new dynamic Audio object on every click to bypass mobile autoplay/hidden restrictions
         const audio = new Audio();
-        audio.src = youdaoUrl;
+        audio.src = proxyTtsUrl;
         
         audio.play().catch(err => {
-            console.warn("Youdao audio failed, trying Baidu TTS...", err);
-            
-            // Fallback to Baidu
-            const baiduAudio = new Audio();
-            baiduAudio.src = baiduUrl;
-            baiduAudio.play().catch(err2 => {
-                console.warn("Baidu audio failed, trying native WebSpeech...", err2);
-                
-                // Fallback to native WebSpeech
-                fallbackWebSpeech(cleanText, `Youdao:[${err.message}] | Baidu:[${err2.message}]`);
-            });
+            console.warn("Proxy TTS failed, trying native WebSpeech...", err);
+            // Fallback to native WebSpeech
+            fallbackWebSpeech(cleanText, `Proxy:[${err.message}]`);
         });
     }
 
