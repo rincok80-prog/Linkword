@@ -1360,3 +1360,41 @@ video {
     40% { transform: scale(1.0); }
 }
 
+/* Crop / Highlight Editor Styling */
+.crop-editor-container {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.crop-instructions {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.crop-instructions strong {
+    color: #f59e0b; /* Yellow highlight color */
+}
+
+.crop-canvas-wrapper {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: inline-block;
+    max-width: 100%;
+}
+
+#crop-source-img {
+    user-select: none;
+    pointer-events: none;
+}
+
+#crop-highlight-canvas {
+    touch-action: none; /* Disable default scrolling on touch */
+}
+

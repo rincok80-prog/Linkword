@@ -255,6 +255,22 @@
                         </div>
                     </div>
 
+                    <!-- Crop/Highlight Editor (Hidden by default) -->
+                    <div id="crop-editor-container" class="crop-editor-container hidden">
+                        <div class="crop-instructions">
+                            <p>用手指在图片上<strong>涂选</strong>需要提取的单词区域（黄色高亮笔）</p>
+                        </div>
+                        <div class="crop-canvas-wrapper">
+                            <img id="crop-source-img" src="" alt="高亮源图">
+                            <canvas id="crop-highlight-canvas"></canvas>
+                        </div>
+                        <div class="scan-controls" style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; width: 100%;">
+                            <button id="crop-clear-btn" class="secondary-btn">清除涂鸦</button>
+                            <button id="crop-cancel-btn" class="secondary-btn">重新选择</button>
+                            <button id="crop-confirm-btn" class="primary-btn">确认识别</button>
+                        </div>
+                    </div>
+
                     <!-- Progress and result -->
                     <div id="scan-status" class="scan-status hidden">
                         <div class="spinner-large"></div>

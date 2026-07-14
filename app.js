@@ -59,6 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
         scanStatus: document.getElementById('scan-status'),
         statusText: document.getElementById('status-text'),
         globalPlayer: document.getElementById('global-player'),
+        
+        // Crop/Highlight Editor
+        scanTabs: document.querySelector('.scan-tabs'),
+        cropEditorContainer: document.getElementById('crop-editor-container'),
+        cropSourceImg: document.getElementById('crop-source-img'),
+        cropHighlightCanvas: document.getElementById('crop-highlight-canvas'),
+        cropClearBtn: document.getElementById('crop-clear-btn'),
+        cropCancelBtn: document.getElementById('crop-cancel-btn'),
+        cropConfirmBtn: document.getElementById('crop-confirm-btn'),
     };
 
     // App State
@@ -346,6 +355,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         elements.reselectBtn.addEventListener('click', resetUploadView);
         elements.analyzeUploadBtn.addEventListener('click', analyzeUploadedImage);
+
+        // Crop/Highlight Editor Events
+        elements.cropClearBtn.addEventListener('click', clearCropHighlightCanvas);
+        elements.cropCancelBtn.addEventListener('click', cancelCropEditor);
+        elements.cropConfirmBtn.addEventListener('click', confirmCropAndRunOCR);
+
+        // Canvas drawing handlers (mouse and touch)
+        const canvas = elements.cropHighlightCanvas;
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing, { passive: false });
     }
 
     // Helper: Show Toast notifications
@@ -945,10 +970,10 @@ JSON Schema 结构：
         context.drawImage(elements.webcam, 0, 0, width, height);
         
         const dataUrl = elements.captureCanvas.toDataURL('image/jpeg', 0.85);
-        const base64 = dataUrl.split(',')[1];
         
-        // Use Gemini API directly for multimodal processing if possible
-        processImageOCR(base64, 'image/jpeg');
+        // Stop camera stream to free resources and launch highlighting editor
+        stopCamera();
+        openCropEditor(dataUrl, 'image/jpeg');
     }
 
     // Handle Upload Dropzone/File input selection
@@ -994,7 +1019,8 @@ JSON Schema 结构：
 
     function analyzeUploadedImage() {
         if (!state.selectedImageBase64) return;
-        processImageOCR(state.selectedImageBase64, state.selectedImageMime);
+        const dataUrl = `data:${state.selectedImageMime};base64,${state.selectedImageBase64}`;
+        openCropEditor(dataUrl, state.selectedImageMime);
     }
 
     // High-accuracy AI Vision OCR using Qwen3-VL
@@ -1053,5 +1079,187 @@ JSON Schema 结构：
         } finally {
             elements.scanStatus.classList.add('hidden');
         }
+    }
+
+    // Crop/Highlight Editor state & drawing functions
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let cropMime = 'image/jpeg';
+    let hasDrawn = false;
+
+    function openCropEditor(imageSrc, mimeType) {
+        cropMime = mimeType;
+        hasDrawn = false;
+        isDrawing = false;
+        minX = Infinity;
+        minY = Infinity;
+        maxX = -Infinity;
+        maxY = -Infinity;
+        
+        // Hide standard camera and upload views
+        elements.cameraView.classList.remove('active');
+        elements.uploadView.classList.remove('active');
+        elements.scanTabs.classList.add('hidden');
+        
+        // Show crop editor
+        elements.cropEditorContainer.classList.remove('hidden');
+        elements.cropSourceImg.src = imageSrc;
+        
+        // Setup canvas when image loads
+        elements.cropSourceImg.onload = () => {
+            const img = elements.cropSourceImg;
+            const canvas = elements.cropHighlightCanvas;
+            
+            canvas.width = img.clientWidth;
+            canvas.height = img.clientHeight;
+            canvas.style.width = img.clientWidth + 'px';
+            canvas.style.height = img.clientHeight + 'px';
+            
+            // Align canvas absolute positioning with image
+            canvas.style.left = img.offsetLeft + 'px';
+            canvas.style.top = img.offsetTop + 'px';
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        };
+    }
+
+    function clearCropHighlightCanvas() {
+        const canvas = elements.cropHighlightCanvas;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasDrawn = false;
+        minX = Infinity;
+        minY = Infinity;
+        maxX = -Infinity;
+        maxY = -Infinity;
+        showToast('画板已清除，现在可以重新涂抹', 'info');
+    }
+
+    function cancelCropEditor() {
+        elements.cropEditorContainer.classList.add('hidden');
+        elements.scanTabs.classList.remove('hidden');
+        
+        if (state.activeTab === 'camera') {
+            elements.cameraView.classList.add('active');
+            startCamera();
+        } else {
+            elements.uploadView.classList.add('active');
+        }
+    }
+
+    // Drawing Logic
+    function getDrawCoords(e) {
+        const canvas = elements.cropHighlightCanvas;
+        const rect = canvas.getBoundingClientRect();
+        
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        e.preventDefault();
+        isDrawing = true;
+        const coords = getDrawCoords(e);
+        lastX = coords.x;
+        lastY = coords.y;
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        
+        const coords = getDrawCoords(e);
+        const canvas = elements.cropHighlightCanvas;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(coords.x, coords.y);
+        
+        // Yellow semi-transparent highlighter brush
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+        ctx.lineWidth = Math.max(16, canvas.width * 0.05); // dynamic line width
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        
+        // Track bounding box bounds
+        const halfWidth = ctx.lineWidth / 2;
+        minX = Math.min(minX, coords.x - halfWidth, lastX - halfWidth);
+        minY = Math.min(minY, coords.y - halfWidth, lastY - halfWidth);
+        maxX = Math.max(maxX, coords.x + halfWidth, lastX + halfWidth);
+        maxY = Math.max(maxY, coords.y + halfWidth, lastY + halfWidth);
+        
+        lastX = coords.x;
+        lastY = coords.y;
+        hasDrawn = true;
+    }
+
+    function stopDrawing(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        isDrawing = false;
+    }
+
+    function confirmCropAndRunOCR() {
+        const img = elements.cropSourceImg;
+        const canvas = elements.cropHighlightCanvas;
+        
+        // If they did not draw anything, send the full source image
+        if (!hasDrawn) {
+            const base64 = img.src.split(',')[1];
+            processImageOCR(base64, cropMime);
+            return;
+        }
+        
+        // Apply bounding box cropping
+        const scaleX = img.naturalWidth / img.clientWidth;
+        const scaleY = img.naturalHeight / img.clientHeight;
+        
+        const padding = 15;
+        
+        let cropX = Math.max(0, Math.floor(minX * scaleX) - padding);
+        let cropY = Math.max(0, Math.floor(minY * scaleY) - padding);
+        let cropW = Math.min(img.naturalWidth - cropX, Math.ceil((maxX - minX) * scaleX) + padding * 2);
+        let cropH = Math.min(img.naturalHeight - cropY, Math.ceil((maxY - minY) * scaleY) + padding * 2);
+        
+        if (cropW <= 5 || cropH <= 5) {
+            showToast('涂抹范围过小，请重新涂抹要识别的区域！', 'warning');
+            return;
+        }
+        
+        // Draw cropped sub-rect onto a temporary canvas
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = cropW;
+        tempCanvas.height = cropH;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        tempCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        
+        const croppedDataUrl = tempCanvas.toDataURL(cropMime, 0.85);
+        const croppedBase64 = croppedDataUrl.split(',')[1];
+        
+        // Close editor and send
+        elements.cropEditorContainer.classList.add('hidden');
+        elements.scanTabs.classList.remove('hidden');
+        
+        processImageOCR(croppedBase64, cropMime);
     }
 });
