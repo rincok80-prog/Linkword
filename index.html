@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkWord - 联想词汇记忆 | 极简背单词</title>
+    <meta name="description" content="使用联想记忆法辅助背诵英语单词。输入单词，AI 将其串联成生动有趣的故事和例句，配有离线合成语音朗读和相机拍照识别。">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3.0">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- File Protocol Warning Banner -->
+        <div id="protocol-warning" class="protocol-warning hidden">
+            <div class="warning-content">
+                <span class="warning-icon">⚠️</span>
+                <p>您当前通过本地文件打开。浏览器在此安全限制下会<strong>禁用声音和拍照功能</strong>。请在地址栏手动输入并访问：<strong class="url-highlight">http://localhost:3000</strong></p>
+                <button id="copy-url-btn" class="primary-btn sm-btn">复制地址</button>
+            </div>
+        </div>
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">✦</span>
+                <h1>LinkWord</h1>
+                <span class="logo-sub">联想记忆</span>
+            </div>
+            <div class="header-actions">
+                <button id="toggle-history-btn" class="icon-btn" title="历史记录">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </button>
+                <button id="open-settings-btn" class="icon-btn hidden" title="配置 API">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            <!-- Sidebar Backdrop -->
+            <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+            
+            <!-- Sidebar (History) -->
+            <aside id="history-sidebar" class="history-sidebar">
+                <div class="sidebar-header">
+                    <h2>记忆历史</h2>
+                    <button id="clear-history-btn" class="text-btn">清空</button>
+                </div>
+                <div class="sidebar-content">
+                    <ul id="history-list" class="history-list">
+                        <!-- History items injected here -->
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Workspace Content -->
+            <div class="workspace-content">
+                <!-- Input Panel -->
+                <section class="input-card">
+                    <div class="input-header">
+                        <h3>输入单词</h3>
+                        <span class="info-tip">用空格、逗号或回车分隔多个单词</span>
+                    </div>
+                    <div class="textarea-wrapper">
+                        <textarea id="words-input" placeholder="例如: pristine, obsolete, digital..." spellcheck="false"></textarea>
+                    </div>
+                    <div class="input-actions">
+                        <div class="action-left">
+                            <button id="open-scan-btn" class="secondary-btn" title="通过拍照或上传图片识别单词">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                                拍照/图片识别
+                            </button>
+                            <button id="clear-words-btn" class="text-btn">清空</button>
+                        </div>
+                        <button id="generate-btn" class="primary-btn">
+                            <span>串联记忆</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Output Panel -->
+                <section id="output-panel" class="output-panel hidden">
+                    <!-- Story Block -->
+                    <div class="story-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <span class="tag">联想故事</span>
+                                <h4>Story Concept</h4>
+                            </div>
+                            <button id="speak-story-btn" class="tts-btn" title="朗读故事">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                            </button>
+                        </div>
+                        <p id="story-content" class="story-content">
+                            <!-- Story injected here -->
+                        </p>
+                        <p id="story-translation" class="story-translation">
+                            <!-- Translation injected here -->
+                        </p>
+                    </div>
+
+                    <!-- Vocabulary Detail Grid -->
+                    <div class="vocab-grid-header">
+                        <h3>单词卡片</h3>
+                    </div>
+                    <div id="vocab-grid" class="vocab-grid">
+                        <!-- Cards injected here -->
+                    </div>
+                </section>
+
+                <!-- Initial Empty State -->
+                <section id="empty-state" class="empty-state">
+                    <div class="empty-icon">✎</div>
+                    <h3>开启你的联想记忆</h3>
+                    <p>输入 2-5 个英语单词，AI 将为它们构建一段有逻辑关系的微型故事，用场景帮助您牢记它们词意与用法。</p>
+                    <div class="quick-examples">
+                        <button class="example-tag">nostalgia, obsolete, pristine</button>
+                        <button class="example-tag">benevolent, serendipity, chaotic</button>
+                    </div>
+                </section>
+
+                <!-- Loading Skeleton / Cute Loader -->
+                <section id="loading-skeleton" class="output-panel hidden">
+                    <div class="cute-loading-container">
+                        <!-- Cute Mascot (SVG Book that blinks and flips pages) -->
+                        <div class="cute-mascot">
+                            <div class="mascot-book">
+                                <div class="mascot-pages">
+                                    <div class="mascot-page-flip"></div>
+                                </div>
+                                <div class="mascot-face">
+                                    <div class="mascot-eyes">
+                                        <div class="mascot-eye left-eye"></div>
+                                        <div class="mascot-eye right-eye"></div>
+                                    </div>
+                                    <div class="mascot-smile"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cute Loading Title -->
+                        <h4 class="loading-title">AI 老师正在为您编织故事...</h4>
+                        
+                        <!-- Rotating Cute Fun Tips -->
+                        <div class="loading-tips-wrapper">
+                            <p id="loading-tip-text" class="loading-tip">💡 单词们正在悄悄开会，准备合演一出大戏...</p>
+                        </div>
+                        
+                        <!-- Bouncing dots loading indicator -->
+                        <div class="bouncing-dots">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+
+        <!-- API Settings Modal -->
+        <div id="settings-modal" class="modal-backdrop hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>API 配置</h3>
+                    <button id="close-settings-btn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="api-provider">模型服务商</label>
+                        <select id="api-provider">
+                            <option value="gemini">Gemini API (推荐)</option>
+                            <option value="deepseek">DeepSeek API (中国直连)</option>
+                            <option value="custom">Custom OpenAI API</option>
+                            <option value="local">本地备用模板 (无需 API Key)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="api-key-group" class="form-group">
+                        <label for="api-key">API 密钥 (API Key)</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="api-key" placeholder="输入密钥...">
+                            <button id="toggle-key-visibility" class="text-btn">显示</button>
+                        </div>
+                        <span class="input-desc">保存在浏览器本地，不会上传至第三方服务器。</span>
+                    </div>
+
+                    <div id="api-endpoint-group" class="form-group">
+                        <label for="api-endpoint">API 代理/端点地址</label>
+                        <input type="text" id="api-endpoint" placeholder="例如: https://api.deepseek.com/v1">
+                        <span class="input-desc" id="endpoint-desc">Gemini 在国内使用可配置反向代理。DeepSeek 默认：https://api.deepseek.com</span>
+                    </div>
+
+                    <div id="api-model-group" class="form-group">
+                        <label for="api-model">模型名称 (Model)</label>
+                        <input type="text" id="api-model" placeholder="例如: gemini-2.5-flash 或 deepseek-chat">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="test-connection-btn" class="secondary-btn">测试连接</button>
+                    <button id="save-settings-btn" class="primary-btn">保存配置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera OCR Modal -->
+        <div id="scan-modal" class="modal-backdrop hidden">
+            <div class="modal-card scan-card">
+                <div class="modal-header">
+                    <h3>拍照/图片识别单词</h3>
+                    <button id="close-scan-modal-btn" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body scan-body">
+                    <div class="scan-tabs">
+                        <button id="tab-camera" class="tab-btn active">相机拍摄</button>
+                        <button id="tab-upload" class="tab-btn">本地图片</button>
+                    </div>
+
+                    <!-- Camera View -->
+                    <div id="camera-view" class="tab-content active">
+                        <div class="video-container">
+                            <video id="webcam" autoplay playsinline></video>
+                            <canvas id="capture-canvas" class="hidden"></canvas>
+                            <div class="scan-overlay">
+                                <div class="scan-frame"></div>
+                            </div>
+                        </div>
+                        <div class="scan-controls">
+                            <button id="capture-btn" class="primary-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+                                拍摄照片
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Upload View -->
+                    <div id="upload-view" class="tab-content">
+                        <div id="dropzone" class="dropzone">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            <p>拖拽图片到这里，或 <span class="highlight">点击上传</span></p>
+                            <input type="file" id="file-input" accept="image/*" class="hidden">
+                        </div>
+                        <div id="preview-container" class="preview-container hidden">
+                            <img id="image-preview" src="" alt="预览图">
+                            <button id="reselect-btn" class="text-btn">重新选择</button>
+                        </div>
+                        <div class="scan-controls">
+                            <button id="analyze-upload-btn" class="primary-btn" disabled>开始识别</button>
+                        </div>
+                    </div>
+
+                    <!-- Progress and result -->
+                    <div id="scan-status" class="scan-status hidden">
+                        <div class="spinner-large"></div>
+                        <p id="status-text">正在分析图片...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- Global Audio Player for Mobile Compatibility -->
+    <audio id="global-player" style="display: none;" preload="auto"></audio>
+    
+    <script src="app.js?v=3.0"></script>
+</body>
+</html>

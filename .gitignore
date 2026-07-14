@@ -1,0 +1,14 @@
+# Ignore local agent logs and configs
+.agents
+.gemini
+.system_generated
+task.md
+walkthrough.md
+implementation_plan.md
+scratch/
+venv/
+.venv/
+__pycache__/
+*.log
+.DS_Store
+node_modules/

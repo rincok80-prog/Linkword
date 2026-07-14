@@ -1,0 +1,11 @@
+{
+  "name": "linkword",
+  "version": "1.0.0",
+  "description": "联想单词记忆辅助网站",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -u server.py"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
