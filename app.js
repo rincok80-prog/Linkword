@@ -997,44 +997,43 @@ JSON Schema 结构：
         processImageOCR(state.selectedImageBase64, state.selectedImageMime);
     }
 
-    // Client-side local OCR using Tesseract.js - 100% free, runs in browser, no keys needed!
+    // High-accuracy AI Vision OCR using Qwen3-VL
     async function processImageOCR(base64Data, mimeType) {
         elements.scanStatus.classList.remove('hidden');
-        elements.statusText.textContent = '正在初始化本地 OCR 引擎...';
+        elements.statusText.textContent = '正在通过 AI 提取书籍单词...';
         
         try {
-            // Load Tesseract.js dynamically if not already loaded
-            if (typeof Tesseract === 'undefined') {
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-                    script.onload = resolve;
-                    script.onerror = () => reject(new Error('OCR 引擎加载失败，请检查网络连接。'));
-                    document.head.appendChild(script);
-                });
+            let ocrUrl = '/api/ocr';
+            if (window.location.protocol === 'file:') {
+                ocrUrl = 'https://linkword.pages.dev/api/ocr';
             }
             
-            const dataUrl = `data:${mimeType};base64,${base64Data}`;
-            
-            // Run OCR locally in WebAssembly
-            const result = await Tesseract.recognize(dataUrl, 'eng', {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        elements.statusText.textContent = `文字识别中: ${Math.round(m.progress * 100)}%`;
-                    }
-                }
+            const response = await fetch(ocrUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: base64Data,
+                    mime: mimeType
+                })
             });
             
-            const rawText = result.data.text || '';
-            console.log('OCR Raw Text:', rawText);
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${response.status}`);
+            }
             
-            // Extract clean English words using regular expressions (only words >= 2 chars)
+            const data = await response.json();
+            const rawText = data.text || '';
+            console.log('AI OCR raw response:', rawText);
+            
+            // Extract clean English words
             const words = rawText
                 .split(/[\s,;，；\n\t.()!?"'“”:*-]+/)
                 .map(w => w.trim().replace(/[^a-zA-Z-]/g, '')) // keep only letters and hyphens
                 .filter(w => w.length >= 2);
                 
-            // Deduplicate and filter out numbers/noise
             const uniqueWords = [...new Set(words)];
             
             if (uniqueWords.length > 0) {
@@ -1042,10 +1041,10 @@ JSON Schema 结构：
                 const existing = elements.wordsInput.value.trim();
                 const separator = existing ? ', ' : '';
                 elements.wordsInput.value = existing + separator + recognizedWords;
-                showToast(`本地 OCR 识别成功！提取了 ${uniqueWords.length} 个单词`, 'success');
+                showToast(`AI 识别提取成功！提取了 ${uniqueWords.length} 个单词`, 'success');
                 closeScanModal();
             } else {
-                throw new Error('未能在图片中识别到清晰的英文单词，请确保字迹端正且清晰。');
+                throw new Error('未能在图片中提取到任何英文单词，请确保字迹清晰。');
             }
             
         } catch (e) {
