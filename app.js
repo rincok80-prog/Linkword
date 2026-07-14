@@ -1112,20 +1112,21 @@ JSON Schema 结构：
         
         // Setup canvas when image loads
         elements.cropSourceImg.onload = () => {
-            const img = elements.cropSourceImg;
-            const canvas = elements.cropHighlightCanvas;
-            
-            canvas.width = img.clientWidth;
-            canvas.height = img.clientHeight;
-            canvas.style.width = img.clientWidth + 'px';
-            canvas.style.height = img.clientHeight + 'px';
-            
-            // Align canvas absolute positioning with image
-            canvas.style.left = img.offsetLeft + 'px';
-            canvas.style.top = img.offsetTop + 'px';
-            
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Wait 120ms to allow mobile browsers to finish layout reflow
+            setTimeout(() => {
+                const img = elements.cropSourceImg;
+                const canvas = elements.cropHighlightCanvas;
+                
+                canvas.width = img.clientWidth;
+                canvas.height = img.clientHeight;
+                canvas.style.width = img.clientWidth + 'px';
+                canvas.style.height = img.clientHeight + 'px';
+                canvas.style.left = '0px';
+                canvas.style.top = '0px';
+                
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 120);
         };
     }
 
