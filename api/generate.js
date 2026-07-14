@@ -22,7 +22,7 @@ module.exports = (req, res) => {
         return res.end(JSON.stringify({ error: 'Missing words array in body' }));
     }
     
-    const SILICONFLOW_KEY = "sk-caucwtkqzlmewpazllitwirjdyvfvqtmyusvwffqvtjhtprm";
+    const SILICONFLOW_KEY = process.env.SILICONFLOW_KEY || "sk-caucwtkqzlmewpazllitwirjdyvfvqtmyusvwffqvtjhtprm";
     
     const prompt = `您是英语老师。请使用以下单词：[${words.join(', ')}]。
 请用极其简单、好懂的初中词汇写一段3句话的英语小故事。
