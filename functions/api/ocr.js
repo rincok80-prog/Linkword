@@ -41,7 +41,7 @@ export async function onRequestPost(context) {
         
         const prompt = "You are a professional vocabulary extraction assistant. Analyze the image and extract only the target vocabulary words (bolded words, vocabulary list words, new words, or highlighted words on the page). Avoid common grammar words (like 'the', 'is', 'and', 'of', 'to', 'in', 'it', 'he', 'she', 'they', etc.) and simple daily words. Return a clean list of extracted unique English vocabulary words, sorted, separated by commas (e.g. nostalgia, obsolete, pristine). Output ONLY the comma-separated list of words, no markdown, no other text.";
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
