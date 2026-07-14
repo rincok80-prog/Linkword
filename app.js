@@ -395,79 +395,30 @@ document.addEventListener('DOMContentLoaded', () => {
             window.speechSynthesis.cancel();
         } catch(e) {}
         
-        const player = elements.globalPlayer;
-        if (!player) return;
+        // Clean text (remove HTML tags)
+        const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").trim();
         
-        try {
-            // Stop any existing playing Audio
-            player.pause();
-            player.oncanplay = null;
-            player.onerror = null;
+        // Audio URLs
+        const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleanText)}&type=2`;
+        const baiduUrl = `https://tts.baidu.com/text2audio?tex=${encodeURIComponent(cleanText)}&lan=en&spd=4`;
+        
+        // Create new dynamic Audio object on every click to bypass mobile autoplay/hidden restrictions
+        const audio = new Audio();
+        audio.src = youdaoUrl;
+        
+        audio.play().catch(err => {
+            console.warn("Youdao audio failed, trying Baidu TTS...", err);
             
-            // Clean text (remove HTML tags)
-            const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").trim();
-            
-            // Audio URLs
-            const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleanText)}&type=2`;
-            const baiduUrl = `https://tts.baidu.com/text2audio?tex=${encodeURIComponent(cleanText)}&lan=en&spd=4`;
-            
-            let attempt = 'youdao'; // current source provider
-            let youdaoErr = '';
-            
-            // Play handler
-            player.oncanplay = () => {
-                player.play().catch(err => {
-                    console.warn(`${attempt} play failed:`, err);
-                    handleSourceError(`${err.name}: ${err.message}`);
-                });
-            };
-            
-            // Load error handler
-            player.onerror = () => {
-                const mediaErr = player.error;
-                const errDetail = mediaErr ? `Code ${mediaErr.code}: ${mediaErr.message || 'Mime/Redirect Block'}` : 'Load error';
-                console.warn(`${attempt} load failed:`, errDetail);
-                handleSourceError(errDetail);
-            };
-            
-            function handleSourceError(errorMsg) {
-                player.oncanplay = null;
-                player.onerror = null;
+            // Fallback to Baidu
+            const baiduAudio = new Audio();
+            baiduAudio.src = baiduUrl;
+            baiduAudio.play().catch(err2 => {
+                console.warn("Baidu audio failed, trying native WebSpeech...", err2);
                 
-                if (attempt === 'youdao') {
-                    attempt = 'baidu';
-                    youdaoErr = errorMsg;
-                    console.log('Youdao audio failed. Falling back to Baidu TTS...');
-                    
-                    // Rebind event listeners for the Baidu attempt
-                    player.oncanplay = () => {
-                        player.play().catch(err => {
-                            console.warn('Baidu play failed:', err);
-                            handleSourceError(`${err.name}: ${err.message}`);
-                        });
-                    };
-                    player.onerror = () => {
-                        const mediaErr = player.error;
-                        const errDetail = mediaErr ? `Code ${mediaErr.code}: ${mediaErr.message || 'Block'}` : 'Load error';
-                        handleSourceError(errDetail);
-                    };
-                    
-                    player.src = baiduUrl;
-                } else if (attempt === 'baidu') {
-                    attempt = 'webspeech';
-                    console.log('Baidu TTS failed. Falling back to native WebSpeech...');
-                    fallbackWebSpeech(cleanText, `Youdao:[${youdaoErr}] | Baidu:[${errorMsg}]`);
-                }
-            }
-            
-            // Start Youdao attempt
-            player.src = youdaoUrl;
-            
-        } catch (e) {
-            console.error('Audio initialization failed, falling back to WebSpeech:', e);
-            const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").trim();
-            fallbackWebSpeech(cleanText, `InitException: ${e.message}`);
-        }
+                // Fallback to native WebSpeech
+                fallbackWebSpeech(cleanText, `Youdao:[${err.message}] | Baidu:[${err2.message}]`);
+            });
+        });
     }
 
     // Native Web Speech fallback if Youdao and Baidu both fail
@@ -478,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
             utterance.rate = 0.9;
             utterance.onerror = (e) => {
                 const speechErr = e.error ? `SpeechError: ${e.error}` : 'SpeechSynthesis failed';
-                showToast(`朗读失败。网卡/引擎拦截信息:\n[${originalError}] | 系统语音: [${speechErr}]`, 'error');
+                showToast(`朗读失败。网络引擎拦截信息:\n[${originalError}] | 系统语音: [${speechErr}]`, 'error');
             };
             window.speechSynthesis.speak(utterance);
         } catch(err) {
