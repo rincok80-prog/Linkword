@@ -31,51 +31,54 @@ export async function onRequestPost(context) {
             });
         }
         
-        const SILICONFLOW_KEY = env.SILICONFLOW_KEY || "sk-caucwtkqzlmewpazllitwirjdyvfvqtmyusvwffqvtjhtprm";
+        const GEMINI_KEY = env.GEMINI_KEY || "";
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
+                status: 400,
+                headers: corsHeaders
+            });
+        }
         
         const prompt = "You are a professional vocabulary extraction assistant. Analyze the image and extract only the target vocabulary words (bolded words, vocabulary list words, new words, or highlighted words on the page). Avoid common grammar words (like 'the', 'is', 'and', 'of', 'to', 'in', 'it', 'he', 'she', 'they', etc.) and simple daily words. Return a clean list of extracted unique English vocabulary words, sorted, separated by commas (e.g. nostalgia, obsolete, pristine). Output ONLY the comma-separated list of words, no markdown, no other text.";
 
-        const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SILICONFLOW_KEY}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'Qwen/Qwen3-VL-8B-Instruct',
-                messages: [
+                contents: [
                     {
-                        role: 'user',
-                        content: [
+                        parts: [
                             {
-                                type: 'text',
                                 text: prompt
                             },
                             {
-                                type: 'image_url',
-                                image_url: {
-                                    url: `data:${mime};base64,${image}`
+                                inlineData: {
+                                    mimeType: mime,
+                                    data: image
                                 }
                             }
                         ]
                     }
                 ],
-                temperature: 0.1
+                generationConfig: {
+                    temperature: 0.1
+                }
             })
         });
         
         const respText = await response.text();
         if (response.status !== 200) {
-            return new Response(JSON.stringify({ error: `SiliconFlow API error: ${respText}` }), {
+            return new Response(JSON.stringify({ error: `Gemini API error (HTTP ${response.status}): ${respText}` }), {
                 status: response.status,
                 headers: corsHeaders
             });
         }
         
         const data = JSON.parse(respText);
-        let resultText = data.choices?.[0]?.message?.content || '';
+        let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
-        // Clean up any extra text
         resultText = resultText.trim();
         
         return new Response(JSON.stringify({ text: resultText }), {

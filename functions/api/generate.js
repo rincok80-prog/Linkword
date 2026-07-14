@@ -31,7 +31,14 @@ export async function onRequestPost(context) {
         }
         
         // Environment Variable priority
-        const SILICONFLOW_KEY = env.SILICONFLOW_KEY || "sk-caucwtkqzlmewpazllitwirjdyvfvqtmyusvwffqvtjhtprm";
+        const GEMINI_KEY = env.GEMINI_KEY || "";
+        
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
+                status: 400,
+                headers: corsHeaders
+            });
+        }
         
         const prompt = `您是英语老师。请使用以下单词：[${words.join(', ')}]。
 请用极其简单、好懂的初中词汇写一段3句话的英语小故事。
@@ -53,49 +60,35 @@ export async function onRequestPost(context) {
 
 注意：故事必须逻辑通顺，所有英文句子和例句必须非常简单易懂。为了防止 JSON 解析失败，如果英文故事或例句中需要使用引号，请必须使用单引号（'），绝对不要在 JSON 的属性值内直接使用未转义的双引号（"）。`;
 
-        async function callAPI(modelName) {
-            const body = JSON.stringify({
-                model: modelName,
-                messages: [
-                    { role: 'system', content: 'You are a helpful assistant that outputs only valid JSON strings.' },
-                    { role: 'user', content: prompt }
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        parts: [
+                            {
+                                text: prompt
+                            }
+                        ]
+                    }
                 ],
-                max_tokens: 800,
-                temperature: 0.5
-            });
-            
-            const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${SILICONFLOW_KEY}`
-                },
-                body: body
-            });
-            
-            if (response.status === 200) {
-                return await response.text();
-            } else {
-                const errText = await response.text();
-                throw { statusCode: response.status, body: errText };
-            }
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.5
+                }
+            })
+        });
+        
+        const respText = await response.text();
+        if (response.status !== 200) {
+            throw new Error(`Gemini API error (HTTP ${response.status}): ${respText}`);
         }
         
-        let responseData;
-        try {
-            console.log("Trying Pro high-speed channel...");
-            responseData = await callAPI("Qwen/Qwen2.5-14B-Instruct");
-        } catch (err) {
-            if (err && err.statusCode === 403) {
-                console.log("Balance is 0. Falling back to free model Qwen3-8B...");
-                responseData = await callAPI("Qwen/Qwen3-8B");
-            } else {
-                throw err;
-            }
-        }
-        
-        const data = JSON.parse(responseData);
-        let jsonText = data.choices?.[0]?.message?.content || '';
+        const data = JSON.parse(respText);
+        let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
         jsonText = jsonText.trim();
         const firstBrace = jsonText.indexOf('{');
@@ -114,8 +107,7 @@ export async function onRequestPost(context) {
         
     } catch (e) {
         console.error('Execution failed:', e);
-        const errorDetail = e.body || e.message || JSON.stringify(e);
-        return new Response(JSON.stringify({ error: `Execution failed: ${errorDetail}` }), {
+        return new Response(JSON.stringify({ error: e.message || 'Execution failed' }), {
             status: 500,
             headers: corsHeaders
         });
