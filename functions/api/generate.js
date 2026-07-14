@@ -114,7 +114,8 @@ export async function onRequestPost(context) {
         
     } catch (e) {
         console.error('Execution failed:', e);
-        return new Response(JSON.stringify({ error: e.message || 'Execution failed' }), {
+        const errorDetail = e.body || e.message || JSON.stringify(e);
+        return new Response(JSON.stringify({ error: `Execution failed: ${errorDetail}` }), {
             status: 500,
             headers: corsHeaders
         });
