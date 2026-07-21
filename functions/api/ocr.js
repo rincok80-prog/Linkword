@@ -41,8 +41,8 @@ export async function onRequestPost(context) {
         
         const prompt = "You are a professional vocabulary extraction assistant. Analyze the image and extract all the English vocabulary words from the image, focusing especially on those that are highlighted by the yellow brush, bolded, or marked by the user. Return a clean list of extracted unique English words, separated by commas (e.g. nostalgia, obsolete, pristine). Output ONLY the comma-separated list of words, no markdown, no other text. Do not explain anything.";
 
-        // Use stable high-quota gemini-3.1-flash-lite via UK proxy to bypass Google regional restrictions
-        const response = await fetch(`https://gemini.api.chatgpt.org.uk/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
+        // Use stable high-quota gemini-3.1-flash-lite via Vercel proxy to bypass Google regional restrictions
+        const response = await fetch(`https://gemini-api-proxy.vercel.app/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

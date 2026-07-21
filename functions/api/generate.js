@@ -61,8 +61,8 @@ export async function onRequestPost(context) {
 
 注意：故事必须逻辑通顺，所有英文句子和例句必须非常简单易懂。为了防止 JSON 解析失败，如果英文故事或例句中需要使用引号，请必须使用单引号（'），绝对不要在 JSON 的属性值内直接使用未转义的双引号（"）。`;
 
-        // Use stable high-quota gemini-3.1-flash-lite via UK proxy to bypass Google regional restrictions
-        const response = await fetch(`https://gemini.api.chatgpt.org.uk/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
+        // Use stable high-quota gemini-3.1-flash-lite via Vercel proxy to bypass Google regional restrictions
+        const response = await fetch(`https://gemini-api-proxy.vercel.app/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
