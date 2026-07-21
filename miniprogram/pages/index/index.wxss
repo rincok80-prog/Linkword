@@ -581,3 +581,82 @@
   font-size: 26rpx;
   color: var(--text-muted);
 }
+
+/* Crop Editor Styling */
+.crop-editor-backdrop {
+  position: fixed;
+  left: 0;
+  width: 100vw;
+  background-color: rgba(15, 23, 42, 0.7);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.crop-editor-card {
+  background-color: var(--bg-card);
+  border: 2rpx solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 620rpx;
+  padding: 32rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  box-shadow: var(--shadow-lg);
+}
+
+.crop-editor-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.crop-editor-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.crop-editor-tip {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.crop-editor-body {
+  background-color: #000;
+  border-radius: var(--radius-md);
+  padding: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  box-sizing: border-box;
+}
+
+.crop-image-container {
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.crop-source-img {
+  max-width: 100%;
+  max-height: 50vh;
+}
+
+.crop-highlight-canvas {
+  touch-action: none;
+}
+
+.crop-editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.crop-footer-right {
+  display: flex;
+  gap: 16rpx;
+}

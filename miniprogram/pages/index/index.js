@@ -24,7 +24,11 @@ Page({
     currentTip: loadingTips[0],
     tipIntervalId: null,
     audioContext: null,
-    navHeight: 64 // default fallback
+    navHeight: 64, // default fallback
+    showCropEditor: false,
+    cropImgSrc: "",
+    imageDisplayWidth: 300,
+    imageDisplayHeight: 400
   },
 
   onLoad() {
@@ -92,22 +96,207 @@ Page({
       sizeType: ['compressed'],
       success: (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath;
-        // Open WeChat's native image editor to let the user crop, rotate, or doodle
-        wx.editImage({
-          src: tempFilePath,
-          success: (editRes) => {
-            this.processOCR(editRes.tempFilePath);
-          },
-          fail: (err) => {
-            console.log('Edit image cancelled or failed, falling back to original image:', err);
-            this.processOCR(tempFilePath);
-          }
+        this.setData({
+          cropImgSrc: tempFilePath,
+          showCropEditor: true
         });
       },
       fail: (err) => {
         console.log('Failed to choose media:', err);
       }
     });
+  },
+
+  // Custom Crop/Highlight Canvas initialization
+  onCropImageLoad(e) {
+    const naturalWidth = e.detail.width;
+    const naturalHeight = e.detail.height;
+    this.naturalWidth = naturalWidth;
+    this.naturalHeight = naturalHeight;
+
+    // Get displayed layout size of the image element
+    wx.createSelectorQuery().select('#crop-source-img')
+      .boundingClientRect((rect) => {
+        if (!rect) return;
+        this.clientWidth = rect.width;
+        this.clientHeight = rect.height;
+
+        this.setData({
+          imageDisplayWidth: rect.width,
+          imageDisplayHeight: rect.height
+        });
+
+        // Query Canvas 2D instance
+        wx.createSelectorQuery().select('#crop-highlight-canvas')
+          .fields({ node: true, size: true })
+          .exec((res) => {
+            if (!res || !res[0]) return;
+            const canvas = res[0].node;
+            const ctx = canvas.getContext('2d');
+
+            // Match canvas resolution to displayed dimensions
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            this.canvasNode = canvas;
+            this.canvasCtx = ctx;
+            this.canvasWidth = rect.width;
+            this.canvasHeight = rect.height;
+
+            // Reset drawing variables
+            this.isDrawing = false;
+            this.hasDrawn = false;
+            this.minX = Infinity;
+            this.minY = Infinity;
+            this.maxX = -Infinity;
+            this.maxY = -Infinity;
+          });
+      }).exec();
+  },
+
+  // Drawing touches handlers
+  onTouchStart(e) {
+    if (!this.canvasCtx) return;
+    const touch = e.touches[0];
+    this.isDrawing = true;
+    this.lastX = touch.x;
+    this.lastY = touch.y;
+  },
+
+  onTouchMove(e) {
+    if (!this.isDrawing || !this.canvasCtx) return;
+    const touch = e.touches[0];
+    const x = touch.x;
+    const y = touch.y;
+
+    const ctx = this.canvasCtx;
+    ctx.beginPath();
+    ctx.moveTo(this.lastX, this.lastY);
+    ctx.lineTo(x, y);
+
+    // Yellow brush style
+    ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+    const lineWidth = Math.max(16, this.canvasWidth * 0.05);
+    ctx.lineWidth = lineWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Track bounding box bounds
+    const halfWidth = lineWidth / 2;
+    this.minX = Math.min(this.minX, x - halfWidth, this.lastX - halfWidth);
+    this.minY = Math.min(this.minY, y - halfWidth, this.lastY - halfWidth);
+    this.maxX = Math.max(this.maxX, x + halfWidth, this.lastX + halfWidth);
+    this.maxY = Math.max(this.maxY, y + halfWidth, this.lastY + halfWidth);
+
+    this.lastX = x;
+    this.lastY = y;
+    this.hasDrawn = true;
+  },
+
+  onTouchEnd() {
+    this.isDrawing = false;
+  },
+
+  clearCropCanvas() {
+    if (!this.canvasCtx) return;
+    this.canvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+    this.hasDrawn = false;
+    this.minX = Infinity;
+    this.minY = Infinity;
+    this.maxX = -Infinity;
+    this.maxY = -Infinity;
+    wx.showToast({
+      title: '画布已清空',
+      icon: 'none'
+    });
+  },
+
+  cancelCropEditor() {
+    this.setData({
+      showCropEditor: false
+    });
+    this.hasDrawn = false;
+  },
+
+  confirmCropAndRunOCR() {
+    if (!this.hasDrawn) {
+      // If nothing drawn, process the original full size image
+      this.setData({ showCropEditor: false });
+      this.processOCR(this.data.cropImgSrc);
+      return;
+    }
+
+    // Apply bounding box cropping
+    const scaleX = this.naturalWidth / this.clientWidth;
+    const scaleY = this.naturalHeight / this.clientHeight;
+    const padding = 15;
+
+    let cropX = Math.max(0, Math.floor(this.minX * scaleX) - padding);
+    let cropY = Math.max(0, Math.floor(this.minY * scaleY) - padding);
+    let cropW = Math.min(this.naturalWidth - cropX, Math.ceil((this.maxX - this.minX) * scaleX) + padding * 2);
+    let cropH = Math.min(this.naturalHeight - cropY, Math.ceil((this.maxY - this.minY) * scaleY) + padding * 2);
+
+    if (cropW <= 5 || cropH <= 5) {
+      wx.showToast({
+        title: '涂抹范围过小',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({ showCropEditor: false });
+    wx.showLoading({
+      title: '正在裁剪...',
+      mask: true
+    });
+
+    try {
+      // Create offscreen canvas to copy the cropped segment cleanly
+      const offscreenCanvas = wx.createOffscreenCanvas({
+        type: '2d',
+        width: cropW,
+        height: cropH
+      });
+      const offCtx = offscreenCanvas.getContext('2d');
+      const img = offscreenCanvas.createImage();
+      img.src = this.data.cropImgSrc;
+      
+      img.onload = () => {
+        offCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+        wx.canvasToTempFilePath({
+          canvas: offscreenCanvas,
+          x: 0,
+          y: 0,
+          width: cropW,
+          height: cropH,
+          destWidth: cropW,
+          destHeight: cropH,
+          fileType: 'jpg',
+          quality: 0.85,
+          success: (res) => {
+            wx.hideLoading();
+            this.processOCR(res.tempFilePath);
+          },
+          fail: (err) => {
+            wx.hideLoading();
+            console.error('Canvas export failed:', err);
+            this.processOCR(this.data.cropImgSrc);
+          }
+        });
+      };
+
+      img.onerror = (err) => {
+        wx.hideLoading();
+        console.error('Offscreen load failed:', err);
+        this.processOCR(this.data.cropImgSrc);
+      };
+
+    } catch (e) {
+      wx.hideLoading();
+      console.error('Offscreen canvas error:', e);
+      this.processOCR(this.data.cropImgSrc);
+    }
   },
 
   // Convert image to Base64 and request OCR endpoint
