@@ -31,7 +31,6 @@
                 <span class="logo-sub">联想记忆</span>
             </div>
             <div class="header-actions">
-                <div id="usage-status-badge" class="usage-badge">体验额度: 10/10 次</div>
                 <button id="toggle-history-btn" class="icon-btn" title="历史记录">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </button>
@@ -281,28 +280,6 @@
             </div>
         </div>
 
-    </div>
-    
-    <!-- Paywall / Membership Modal -->
-    <div id="paywall-modal" class="modal-backdrop hidden">
-        <div class="modal-card paywall-card">
-            <div class="paywall-header">
-                <span class="paywall-icon">💎</span>
-                <h2>体验额度已用完</h2>
-                <p>支持扫码支付 1 元解锁永久无限次使用</p>
-            </div>
-            <div class="paywall-body">
-                <div class="qr-container">
-                    <img src="wechat_qr.png" alt="微信收款码" class="qr-code">
-                    <p class="qr-tip">用微信扫上方二维码支付 1 元<br>后添加作者微信获取激活码</p>
-                </div>
-                <div class="activation-form">
-                    <input type="text" id="activation-code-input" placeholder="输入 4 位数邀请码" maxlength="10">
-                    <button id="activate-btn" class="primary-btn">激活解锁</button>
-                </div>
-                <p id="activation-error" class="error-text hidden">邀请码不正确，请重新输入</p>
-            </div>
-        </div>
     </div>
     
     <!-- Global Audio Player for Mobile Compatibility -->

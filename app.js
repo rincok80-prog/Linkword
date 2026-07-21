@@ -68,13 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cropClearBtn: document.getElementById('crop-clear-btn'),
         cropCancelBtn: document.getElementById('crop-cancel-btn'),
         cropConfirmBtn: document.getElementById('crop-confirm-btn'),
-        
-        // Paywall Elements
-        paywallModal: document.getElementById('paywall-modal'),
-        activationCodeInput: document.getElementById('activation-code-input'),
-        activateBtn: document.getElementById('activate-btn'),
-        activationError: document.getElementById('activation-error'),
-        usageStatusBadge: document.getElementById('usage-status-badge'),
     };
 
     // App State
@@ -101,10 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setupVoiceSynthesis();
         updateProviderUIFields();
         checkProtocol();
-        
-        // Initialize Paywall state
-        updateUsageStatus();
-        checkUsageLimit();
     }
 
     // Check if running on file:// protocol and show user warning
@@ -382,14 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('touchstart', startDrawing, { passive: false });
         canvas.addEventListener('touchmove', draw, { passive: false });
         canvas.addEventListener('touchend', stopDrawing, { passive: false });
-
-        // Paywall Activation Events
-        elements.activateBtn.addEventListener('click', handleActivation);
-        elements.activationCodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleActivation();
-            }
-        });
     }
 
     // Helper: Show Toast notifications
@@ -527,8 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main logic for handling word memory generation
     async function handleGeneration() {
-        if (!checkUsageLimit()) return;
-
         const words = parseInputWords();
         if (words.length === 0) {
             showToast('请输入一些英文单词', 'error');
@@ -560,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderResult(result);
             saveHistoryItem(words, result);
-            incrementUsageCount(); // Paywall usage count increment
             showToast('生成成功!', 'success');
         } catch (error) {
             console.error(error);
@@ -925,7 +903,6 @@ JSON Schema 结构：
     }
 
     async function openScanModal() {
-        if (!checkUsageLimit()) return;
         elements.scanModal.classList.remove('hidden');
         switchScanTab('camera'); // default tab
     }
@@ -1080,7 +1057,6 @@ JSON Schema 结构：
                 const existing = elements.wordsInput.value.trim();
                 const separator = existing ? ', ' : '';
                 elements.wordsInput.value = existing + separator + recognizedWords;
-                incrementUsageCount(); // Increment usage on successful photo OCR
                 showToast(`AI 识别提取成功！提取了 ${uniqueWords.length} 个单词`, 'success');
                 closeScanModal();
             } else {
@@ -1276,62 +1252,5 @@ JSON Schema 结构：
         elements.scanTabs.classList.remove('hidden');
         
         processImageOCR(croppedBase64, cropMime);
-    }
-
-    /* ==========================================================================
-       Paywall / Membership Management
-       ========================================================================== */
-
-    function checkUsageLimit() {
-        if (localStorage.getItem('linkword_is_vip') === 'true') {
-            return true;
-        }
-        
-        let count = parseInt(localStorage.getItem('linkword_usage_count') || '0');
-        if (count >= 10) {
-            elements.paywallModal.classList.remove('hidden');
-            return false;
-        }
-        return true;
-    }
-
-    function incrementUsageCount() {
-        if (localStorage.getItem('linkword_is_vip') === 'true') {
-            return;
-        }
-        let count = parseInt(localStorage.getItem('linkword_usage_count') || '0');
-        count++;
-        localStorage.setItem('linkword_usage_count', count.toString());
-        updateUsageStatus();
-        checkUsageLimit();
-    }
-
-    function updateUsageStatus() {
-        const badge = elements.usageStatusBadge;
-        if (!badge) return;
-        
-        if (localStorage.getItem('linkword_is_vip') === 'true') {
-            badge.innerHTML = '<span class="vip-badge">💎 VIP 会员</span>';
-            return;
-        }
-        
-        let count = parseInt(localStorage.getItem('linkword_usage_count') || '0');
-        let remaining = Math.max(0, 10 - count);
-        badge.innerHTML = `体验额度: ${remaining}/10 次`;
-    }
-
-    function handleActivation() {
-        const enteredCode = elements.activationCodeInput.value.trim();
-        if (enteredCode === '0320') {
-            localStorage.setItem('linkword_is_vip', 'true');
-            elements.paywallModal.classList.add('hidden');
-            elements.activationError.classList.add('hidden');
-            updateUsageStatus();
-            showToast('尊贵的 VIP 会员，激活成功！已解锁永久无限次使用！', 'success');
-        } else {
-            elements.activationError.classList.remove('hidden');
-            elements.activationCodeInput.value = '';
-            elements.activationCodeInput.focus();
-        }
     }
 });
