@@ -61,7 +61,7 @@ export async function onRequestPost(context) {
 
 注意：故事必须逻辑通顺，所有英文句子和例句必须非常简单易懂。为了防止 JSON 解析失败，如果英文故事或例句中需要使用引号，请必须使用单引号（'），绝对不要在 JSON 的属性值内直接使用未转义的双引号（"）。`;
 
-        // Cloudflare rebuild trigger to read the new PROXY_HOST variable
+        // Final Cloudflare rebuild trigger after PROXY_HOST is fully configured in settings
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
 
