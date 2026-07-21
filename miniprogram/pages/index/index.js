@@ -78,7 +78,9 @@ Page({
   // Clear input words
   clearWords() {
     this.setData({
-      wordsInputValue: ""
+      wordsInputValue: "",
+      showEmptyState: true,
+      showOutput: false
     });
   },
 
