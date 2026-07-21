@@ -164,6 +164,7 @@ Page({
           // Reset drawing variables
           this.isDrawing = false;
           this.hasDrawn = false;
+          this.drawnBoxes = []; // Store drawn rectangles
           this.minX = Infinity;
           this.minY = Infinity;
           this.maxX = -Infinity;
@@ -184,12 +185,6 @@ Page({
     this.startY = touch.y;
     this.lastX = touch.x;
     this.lastY = touch.y;
-
-    if (this.data.drawMode === 'box') {
-      // Clear previous box on new touch start in Box Mode
-      this.canvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
-      this.hasDrawn = false;
-    }
   },
 
   onTouchMove(e) {
@@ -224,30 +219,52 @@ Page({
       this.lastY = y;
       this.hasDrawn = true;
     } else {
-      // Box Mode (Rectangle selection)
+      // Box Mode (Rectangle selection) - Support multiple rectangles
       ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
       
-      // Draw semi-transparent rectangle
+      // 1. Draw all previously saved rectangles
       ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';
       ctx.strokeStyle = '#ffd700';
       ctx.lineWidth = 3;
       
+      if (this.drawnBoxes && this.drawnBoxes.length > 0) {
+        this.drawnBoxes.forEach(box => {
+          ctx.fillRect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
+          ctx.strokeRect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
+        });
+      }
+      
+      // 2. Draw current active dragging rectangle
       const width = x - this.startX;
       const height = y - this.startY;
       ctx.fillRect(this.startX, this.startY, width, height);
       ctx.strokeRect(this.startX, this.startY, width, height);
-
-      // Save exact bounding box dimensions
-      this.minX = Math.min(this.startX, x);
-      this.minY = Math.min(this.startY, y);
-      this.maxX = Math.max(this.startX, x);
-      this.maxY = Math.max(this.startY, y);
-      this.hasDrawn = true;
     }
   },
 
-  onTouchEnd() {
+  onTouchEnd(e) {
+    if (!this.isDrawing) return;
     this.isDrawing = false;
+
+    // In Box Mode, save the finished rectangle when the finger is lifted
+    if (this.data.drawMode === 'box') {
+      const touch = e.changedTouches[0] || e.touches[0];
+      if (touch) {
+        const x = touch.x;
+        const y = touch.y;
+        const x1 = Math.min(this.startX, x);
+        const y1 = Math.min(this.startY, y);
+        const x2 = Math.max(this.startX, x);
+        const y2 = Math.max(this.startY, y);
+
+        // Ensure box isn't a tiny accidental click
+        if (x2 - x1 > 6 && y2 - y1 > 6) {
+          if (!this.drawnBoxes) this.drawnBoxes = [];
+          this.drawnBoxes.push({ x1, y1, x2, y2 });
+          this.hasDrawn = true;
+        }
+      }
+    }
   },
 
   changeBrushSize(e) {
@@ -262,13 +279,14 @@ Page({
     this.setData({
       drawMode: mode
     });
-    this.clearCropCanvas(); // Clear canvas when switching modes to prevent overlapping coordinates
+    this.clearCropCanvas(); // Reset canvas state when switching modes
   },
 
   clearCropCanvas() {
     if (!this.canvasCtx) return;
     this.canvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
     this.hasDrawn = false;
+    this.drawnBoxes = []; // Clear saved boxes
     this.minX = Infinity;
     this.minY = Infinity;
     this.maxX = -Infinity;
@@ -284,6 +302,7 @@ Page({
       showCropEditor: false
     });
     this.hasDrawn = false;
+    this.drawnBoxes = [];
   },
 
   confirmCropAndRunOCR() {
@@ -292,6 +311,32 @@ Page({
       this.setData({ showCropEditor: false });
       this.processOCR(this.data.cropImgSrc);
       return;
+    }
+
+    // In Box Mode, calculate the overall enclosing bounding box for all drawn rectangles
+    if (this.data.drawMode === 'box') {
+      if (!this.drawnBoxes || this.drawnBoxes.length === 0) {
+        this.setData({ showCropEditor: false });
+        this.processOCR(this.data.cropImgSrc);
+        return;
+      }
+      
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      
+      this.drawnBoxes.forEach(box => {
+        minX = Math.min(minX, box.x1);
+        minY = Math.min(minY, box.y1);
+        maxX = Math.max(maxX, box.x2);
+        maxY = Math.max(maxY, box.y2);
+      });
+      
+      this.minX = minX;
+      this.minY = minY;
+      this.maxX = maxX;
+      this.maxY = maxY;
     }
 
     // Apply bounding box cropping
