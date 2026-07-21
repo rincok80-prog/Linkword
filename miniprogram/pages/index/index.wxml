@@ -1,0 +1,133 @@
+<!-- pages/index/index.wxml -->
+<view class="app-container">
+  
+  <!-- Header -->
+  <view class="app-header">
+    <view class="logo">
+      <text class="logo-icon">✦</text>
+      <view class="logo-text-group">
+        <text class="logo-title">LinkWord</text>
+        <text class="logo-sub">联想记忆</text>
+      </view>
+    </view>
+    <view class="header-actions">
+      <view class="icon-btn" bindtap="toggleHistory" hover-class="btn-hover" title="历史记录">
+        <text class="emoji-icon">🕒</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Main Workspace -->
+  <view class="app-main">
+    
+    <!-- Input Panel -->
+    <view class="input-card">
+      <view class="input-header">
+        <text class="input-title">输入单词</text>
+        <text class="info-tip">用空格、逗号或换行分隔多个单词</text>
+      </view>
+      <view class="textarea-wrapper">
+        <textarea id="words-input" class="words-textarea" placeholder="例如: pristine, obsolete, digital..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
+      </view>
+      <view class="input-actions">
+        <view class="action-left">
+          <view class="action-btn secondary-btn-sm" bindtap="startOCR">
+            <text class="btn-icon">📷</text>
+            <text>拍照/图片识别</text>
+          </view>
+          <view class="text-btn-sm" bindtap="clearWords" wx:if="{{wordsInputValue}}">清空</view>
+        </view>
+        <view class="action-right">
+          <button class="primary-btn-submit" bindtap="handleGeneration" disabled="{{isGenerating}}">
+            <text wx:if="{{!isGenerating}}">串联记忆</text>
+            <view wx:else class="spinner-small"></view>
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- Empty State -->
+    <view class="empty-state" wx:if="{{showEmptyState && !isGenerating}}">
+      <view class="empty-icon">💡</view>
+      <text class="empty-title">联想背单词</text>
+      <text class="empty-desc">输入 2 个或更多英文单词，AI 将其串联成一段生动的趣味小故事，帮您轻松记住！</text>
+    </view>
+
+    <!-- Loading Skeleton Card -->
+    <view class="loading-card" wx:if="{{isGenerating}}">
+      <view class="loading-skeleton-title skeleton-blink"></view>
+      <view class="loading-skeleton-text skeleton-blink"></view>
+      <view class="loading-skeleton-text skeleton-blink"></view>
+      <view class="loading-skeleton-text half-width skeleton-blink"></view>
+      
+      <view class="loading-tip-container">
+        <text class="loading-tip-title">⚡ AI 正在疯狂联想中...</text>
+        <text class="loading-tip-text">{{currentTip}}</text>
+      </view>
+    </view>
+
+    <!-- Output Panel -->
+    <view class="output-panel" wx:if="{{showOutput && !isGenerating}}">
+      <!-- Story Card -->
+      <view class="story-card">
+        <view class="story-header">
+          <text class="story-title">联想记忆故事</text>
+          <view class="speak-btn {{isStorySpeaking ? 'speaking' : ''}}" bindtap="toggleSpeakStory">
+            <text class="speak-icon">🔊</text>
+            <text class="speak-text">{{isStorySpeaking ? '播放中...' : '朗读故事'}}</text>
+          </view>
+        </view>
+        <view class="story-body">
+          <rich-text class="story-content" nodes="{{storyHtml}}"></rich-text>
+          <text class="story-translation">{{storyTranslation}}</text>
+        </view>
+      </view>
+
+      <!-- Vocabulary Grid -->
+      <view class="vocab-section-title">记忆核心词汇</view>
+      <view class="vocab-grid">
+        <view class="vocab-card" wx:for="{{vocabList}}" wx:key="word">
+          <view class="vocab-card-header">
+            <view class="word-group">
+              <text class="vocab-word">{{item.word}}</text>
+              <text class="vocab-ipa" wx:if="{{item.ipa}}">{{item.ipa}}</text>
+            </view>
+            <view class="word-speak-btn" bindtap="speakSingleWord" data-word="{{item.word}}">
+              <text class="word-speak-icon">🔊</text>
+            </view>
+          </view>
+          <view class="vocab-def-line">
+            <text class="vocab-pos" wx:if="{{item.pos}}">{{item.pos}}</text>
+            <text class="vocab-definition">{{item.definition}}</text>
+          </view>
+          <view class="vocab-example-box" wx:if="{{item.sentence}}">
+            <text class="example-label">例句：</text>
+            <text class="example-text">{{item.sentence}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- Sidebar Backdrop Drawer for History -->
+  <view class="sidebar-backdrop {{showHistory ? 'active' : ''}}" bindtap="toggleHistory"></view>
+  <view class="history-sidebar {{showHistory ? 'active' : ''}}">
+    <view class="sidebar-header">
+      <text class="sidebar-title">记忆历史</text>
+      <view class="clear-history-btn" bindtap="clearHistory">清空</view>
+    </view>
+    <scroll-view class="sidebar-scroll" scroll-y="true">
+      <view class="history-list" wx:if="{{historyList.length > 0}}">
+        <view class="history-item" wx:for="{{historyList}}" wx:key="index" bindtap="selectHistoryItem" data-index="{{index}}">
+          <view class="history-words">{{item.wordsJoin}}</view>
+          <view class="history-time">{{item.timeFormatted}}</view>
+        </view>
+      </view>
+      <view class="history-empty" wx:else>
+        <text>暂无历史生成记录</text>
+      </view>
+    </scroll-view>
+  </view>
+
+</view>
