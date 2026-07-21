@@ -92,7 +92,17 @@ Page({
       sizeType: ['compressed'],
       success: (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath;
-        this.processOCR(tempFilePath);
+        // Open WeChat's native image editor to let the user crop, rotate, or doodle
+        wx.editImage({
+          src: tempFilePath,
+          success: (editRes) => {
+            this.processOCR(editRes.tempFilePath);
+          },
+          fail: (err) => {
+            console.log('Edit image cancelled or failed, falling back to original image:', err);
+            this.processOCR(tempFilePath);
+          }
+        });
       },
       fail: (err) => {
         console.log('Failed to choose media:', err);
