@@ -4,9 +4,9 @@
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#0f172a",
+    "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTitleText": "LinkWord 联想记忆",
-    "navigationBarTextStyle": "white"
+    "navigationBarTextStyle": "black"
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"
