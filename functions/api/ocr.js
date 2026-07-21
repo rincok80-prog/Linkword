@@ -39,7 +39,7 @@ export async function onRequestPost(context) {
             });
         }
         
-        const prompt = "You are a professional vocabulary extraction assistant. Analyze the image and extract only the target vocabulary words (bolded words, vocabulary list words, new words, or highlighted words on the page). Avoid common grammar words (like 'the', 'is', 'and', 'of', 'to', 'in', 'it', 'he', 'she', 'they', etc.) and simple daily words. Return a clean list of extracted unique English vocabulary words, sorted, separated by commas (e.g. nostalgia, obsolete, pristine). Output ONLY the comma-separated list of words, no markdown, no other text.";
+        const prompt = "You are a professional vocabulary extraction assistant. Analyze the image and extract all the English vocabulary words from the image, focusing especially on those that are highlighted by the yellow brush, bolded, or marked by the user. Return a clean list of extracted unique English words, separated by commas (e.g. nostalgia, obsolete, pristine). Output ONLY the comma-separated list of words, no markdown, no other text. Do not explain anything.";
 
         // Use stable high-quota gemini-3.1-flash-lite
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
