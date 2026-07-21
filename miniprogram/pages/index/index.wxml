@@ -131,14 +131,14 @@
   </view>
 
   <!-- Custom Crop / Highlight Editor Modal -->
-  <view class="crop-editor-backdrop" wx:if="{{showCropEditor}}" style="top: {{navHeight}}px; height: calc(100vh - {{navHeight}}px);">
+  <view class="crop-editor-backdrop" wx:if="{{showCropEditor}}">
     <view class="crop-editor-card">
       <view class="crop-editor-header">
         <text class="crop-editor-title">涂抹要识别的区域</text>
         <text class="crop-editor-tip">手指涂抹以高亮特定英文单词进行识别</text>
       </view>
       <view class="crop-editor-body">
-        <view class="crop-image-container" style="position: relative; width: {{imageDisplayWidth}}px; height: {{imageDisplayHeight}}px; max-height: 50vh; margin: 0 auto;">
+        <view class="crop-image-container" style="position: relative; width: {{imageDisplayWidth}}px; height: {{imageDisplayHeight}}px; margin: 0 auto;">
           <image id="crop-source-img" class="crop-source-img" src="{{cropImgSrc}}" bindload="onCropImageLoad" style="width: 100%; height: 100%; display: block;" mode="aspectFit" />
           <canvas type="2d" id="crop-highlight-canvas" class="crop-highlight-canvas" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 10;" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd"></canvas>
         </view>

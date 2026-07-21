@@ -114,44 +114,63 @@ Page({
     this.naturalWidth = naturalWidth;
     this.naturalHeight = naturalHeight;
 
-    // Get displayed layout size of the image element
-    wx.createSelectorQuery().select('#crop-source-img')
-      .boundingClientRect((rect) => {
-        if (!rect) return;
-        this.clientWidth = rect.width;
-        this.clientHeight = rect.height;
+    try {
+      const sysInfo = wx.getSystemInfoSync();
+      // Dynamically calculate the maximum available space for the crop editor body
+      const maxContainerWidth = sysInfo.screenWidth - 32; // 16px padding on left/right
+      const maxContainerHeight = sysInfo.screenHeight * 0.65; // Occupy up to 65% of screen height
 
-        this.setData({
-          imageDisplayWidth: rect.width,
-          imageDisplayHeight: rect.height
+      const imageRatio = naturalWidth / naturalHeight;
+      const containerRatio = maxContainerWidth / maxContainerHeight;
+
+      let displayWidth, displayHeight;
+      if (imageRatio > containerRatio) {
+        // Image is wider than the container aspect ratio, limit by width
+        displayWidth = maxContainerWidth;
+        displayHeight = maxContainerWidth / imageRatio;
+      } else {
+        // Image is taller, limit by height
+        displayHeight = maxContainerHeight;
+        displayWidth = maxContainerHeight * imageRatio;
+      }
+
+      this.clientWidth = displayWidth;
+      this.clientHeight = displayHeight;
+
+      this.setData({
+        imageDisplayWidth: Math.floor(displayWidth),
+        imageDisplayHeight: Math.floor(displayHeight)
+      });
+
+      // Query Canvas 2D instance
+      wx.createSelectorQuery().select('#crop-highlight-canvas')
+        .fields({ node: true, size: true })
+        .exec((res) => {
+          if (!res || !res[0]) return;
+          const canvas = res[0].node;
+          const ctx = canvas.getContext('2d');
+
+          // Match canvas resolution to displayed dimensions exactly
+          canvas.width = displayWidth;
+          canvas.height = displayHeight;
+
+          this.canvasNode = canvas;
+          this.canvasCtx = ctx;
+          this.canvasWidth = displayWidth;
+          this.canvasHeight = displayHeight;
+
+          // Reset drawing variables
+          this.isDrawing = false;
+          this.hasDrawn = false;
+          this.minX = Infinity;
+          this.minY = Infinity;
+          this.maxX = -Infinity;
+          this.maxY = -Infinity;
         });
 
-        // Query Canvas 2D instance
-        wx.createSelectorQuery().select('#crop-highlight-canvas')
-          .fields({ node: true, size: true })
-          .exec((res) => {
-            if (!res || !res[0]) return;
-            const canvas = res[0].node;
-            const ctx = canvas.getContext('2d');
-
-            // Match canvas resolution to displayed dimensions
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-
-            this.canvasNode = canvas;
-            this.canvasCtx = ctx;
-            this.canvasWidth = rect.width;
-            this.canvasHeight = rect.height;
-
-            // Reset drawing variables
-            this.isDrawing = false;
-            this.hasDrawn = false;
-            this.minX = Infinity;
-            this.minY = Infinity;
-            this.maxX = -Infinity;
-            this.maxY = -Infinity;
-          });
-      }).exec();
+    } catch (err) {
+      console.error('Failed to compute crop layout:', err);
+    }
   },
 
   // Drawing touches handlers
