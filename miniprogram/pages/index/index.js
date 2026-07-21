@@ -30,12 +30,15 @@ Page({
     drawMode: 'brush',
     cropImgSrc: "",
     imageDisplayWidth: 300,
-    imageDisplayHeight: 400
+    imageDisplayHeight: 400,
+    showFavorites: false,
+    favoritesList: []
   },
 
   onLoad() {
     this.loadHistory();
     this.calculateNavHeight();
+    this.loadFavorites();
   },
 
   calculateNavHeight() {
@@ -577,10 +580,18 @@ Page({
 
   // Parse result from JSON backend and map to page state
   renderResult(data) {
+    const favs = wx.getStorageSync('favoritesList') || [];
+    const favMap = new Map(favs.map(f => [f.word.toLowerCase(), true]));
+
+    const words = (data.words || []).map(item => ({
+      ...item,
+      isFavorite: favMap.has(item.word.toLowerCase())
+    }));
+
     this.setData({
       storyHtml: data.story || "",
       storyTranslation: data.story_translation || "",
-      vocabList: data.words || []
+      vocabList: words
     });
   },
 
@@ -790,5 +801,126 @@ Page({
       content: content,
       showCancel: false
     });
+  },
+
+  // 📖 Favorites (生词本) Management
+  loadFavorites() {
+    try {
+      const favs = wx.getStorageSync('favoritesList') || [];
+      this.setData({
+        favoritesList: favs
+      });
+    } catch (e) {
+      console.error('Failed to load favorites:', e);
+    }
+  },
+
+  toggleFavorites() {
+    this.setData({
+      showFavorites: !this.data.showFavorites
+    });
+  },
+
+  toggleFavoriteWord(e) {
+    const index = e.currentTarget.dataset.index;
+    const vocabList = this.data.vocabList;
+    const item = vocabList[index];
+    item.isFavorite = !item.isFavorite;
+
+    let favs = wx.getStorageSync('favoritesList') || [];
+    if (item.isFavorite) {
+      // Add to favorites if not already present
+      if (!favs.some(f => f.word.toLowerCase() === item.word.toLowerCase())) {
+        favs.unshift({
+          word: item.word,
+          pos: item.pos || '',
+          definition: item.definition || '',
+          sentence: item.sentence || ''
+        });
+      }
+      wx.showToast({
+        title: '已加入生词本',
+        icon: 'success'
+      });
+    } else {
+      // Remove from favorites
+      favs = favs.filter(f => f.word.toLowerCase() !== item.word.toLowerCase());
+      wx.showToast({
+        title: '已取消收藏',
+        icon: 'none'
+      });
+    }
+
+    wx.setStorageSync('favoritesList', favs);
+    this.setData({
+      vocabList: vocabList,
+      favoritesList: favs
+    });
+  },
+
+  removeFavorite(e) {
+    const word = e.currentTarget.dataset.word;
+    let favs = wx.getStorageSync('favoritesList') || [];
+    favs = favs.filter(f => f.word.toLowerCase() !== word.toLowerCase());
+    wx.setStorageSync('favoritesList', favs);
+
+    // Also sync the current vocab card star state if visible
+    const vocabList = this.data.vocabList.map(item => {
+      if (item.word.toLowerCase() === word.toLowerCase()) {
+        return { ...item, isFavorite: false };
+      }
+      return item;
+    });
+
+    this.setData({
+      favoritesList: favs,
+      vocabList: vocabList
+    });
+    
+    wx.showToast({
+      title: '已移除',
+      icon: 'none'
+    });
+  },
+
+  clearFavorites() {
+    wx.showModal({
+      title: '确认清空',
+      content: '是否清空您的生词本？此操作不可撤销。',
+      success: (res) => {
+        if (res.confirm) {
+          wx.setStorageSync('favoritesList', []);
+          const vocabList = this.data.vocabList.map(item => ({ ...item, isFavorite: false }));
+          this.setData({
+            favoritesList: [],
+            vocabList: vocabList
+          });
+          wx.showToast({
+            title: '生词本已清空',
+            icon: 'success'
+          });
+        }
+      }
+    });
+  },
+
+  // 📤 Native WeChat Share Handlers
+  onShareAppMessage() {
+    const words = this.data.vocabList.map(item => item.word).slice(0, 3).join(', ');
+    const shareTitle = words 
+      ? `【趣味记忆】我用 AI 趣味记住了：${words} 等单词，快来看看故事吧！`
+      : `【LinkWord 联想记忆】输入几个单词，AI 帮您串联成好记的情境小故事！`;
+    return {
+      title: shareTitle,
+      path: '/pages/index/index'
+    };
+  },
+
+  onShareTimeline() {
+    const words = this.data.vocabList.map(item => item.word).slice(0, 3).join(', ');
+    return {
+      title: words ? `趣味联想记词：${words}` : 'LinkWord AI 联想背单词软件',
+      query: ''
+    };
   }
 });

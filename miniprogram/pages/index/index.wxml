@@ -11,7 +11,10 @@
       </view>
     </view>
     <view class="header-actions">
-      <view class="icon-btn" bindtap="toggleHistory" hover-class="btn-hover" title="历史记录">
+      <view class="icon-btn" bindtap="toggleFavorites" hover-class="btn-hover" style="margin-right: 20rpx;">
+        <text class="emoji-icon">📖</text>
+      </view>
+      <view class="icon-btn" bindtap="toggleHistory" hover-class="btn-hover">
         <text class="emoji-icon">🕒</text>
       </view>
     </view>
@@ -72,9 +75,15 @@
       <view class="story-card">
         <view class="story-header">
           <text class="story-title">联想记忆故事</text>
-          <view class="speak-btn {{isStorySpeaking ? 'speaking' : ''}}" bindtap="toggleSpeakStory">
-            <text class="speak-icon">🔊</text>
-            <text class="speak-text">{{isStorySpeaking ? '播放中...' : '朗读故事'}}</text>
+          <view class="story-actions-group">
+            <view class="speak-btn {{isStorySpeaking ? 'speaking' : ''}}" bindtap="toggleSpeakStory">
+              <text class="speak-icon">🔊</text>
+              <text class="speak-text">{{isStorySpeaking ? '播放中...' : '朗读故事'}}</text>
+            </view>
+            <button class="share-story-btn" open-type="share">
+              <text class="share-icon">📤</text>
+              <text class="share-text">分享</text>
+            </button>
           </view>
         </view>
         <view class="story-body">
@@ -92,8 +101,13 @@
               <text class="vocab-word">{{item.word}}</text>
               <text class="vocab-ipa" wx:if="{{item.ipa}}">{{item.ipa}}</text>
             </view>
-            <view class="word-speak-btn" bindtap="speakSingleWord" data-word="{{item.word}}">
-              <text class="word-speak-icon">🔊</text>
+            <view class="vocab-actions-group">
+              <view class="word-favorite-btn {{item.isFavorite ? 'active' : ''}}" bindtap="toggleFavoriteWord" data-index="{{index}}">
+                <text class="fav-icon">{{item.isFavorite ? '★' : '☆'}}</text>
+              </view>
+              <view class="word-speak-btn" bindtap="speakSingleWord" data-word="{{item.word}}">
+                <text class="word-speak-icon">🔊</text>
+              </view>
             </view>
           </view>
           <view class="vocab-def-line">
@@ -108,6 +122,37 @@
       </view>
     </view>
 
+  </view>
+
+  <!-- Sidebar Backdrop Drawer for Favorites -->
+  <view class="sidebar-backdrop {{showFavorites ? 'active' : ''}}" bindtap="toggleFavorites" style="top: {{navHeight}}px; height: calc(100vh - {{navHeight}}px);"></view>
+  <view class="favorites-sidebar {{showFavorites ? 'active' : ''}}" style="top: {{navHeight}}px; height: calc(100vh - {{navHeight}}px);">
+    <view class="sidebar-header">
+      <text class="sidebar-title">我的生词本</text>
+      <view class="clear-history-btn" bindtap="clearFavorites">清空</view>
+    </view>
+    <scroll-view class="sidebar-scroll" scroll-y="true">
+      <view class="fav-list" wx:if="{{favoritesList.length > 0}}">
+        <view class="fav-item" wx:for="{{favoritesList}}" wx:key="word">
+          <view class="fav-item-header">
+            <view class="fav-word-group">
+              <text class="fav-word">{{item.word}}</text>
+              <text class="fav-def">{{item.pos}} {{item.definition}}</text>
+            </view>
+            <view class="fav-actions">
+              <view class="fav-action-btn" bindtap="speakSingleWord" data-word="{{item.word}}">🔊</view>
+              <view class="fav-action-btn delete" bindtap="removeFavorite" data-word="{{item.word}}">❌</view>
+            </view>
+          </view>
+          <view class="fav-example" wx:if="{{item.sentence}}">
+            <text class="fav-example-text">例：{{item.sentence}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="history-empty" wx:else>
+        <text>暂无收藏生词，在单词卡片上点击 ☆ 即可收藏</text>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- Sidebar Backdrop Drawer for History -->

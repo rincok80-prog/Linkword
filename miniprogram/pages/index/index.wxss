@@ -770,3 +770,166 @@
   color: #ffffff;
   font-weight: 500;
 }
+
+/* Story and Vocab Actions group layout */
+.story-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.share-story-btn {
+  background-color: var(--bg-card-hover);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 24rpx;
+  font-weight: 500;
+  padding: 12rpx 24rpx;
+  border: none;
+  min-height: 0 !important;
+  width: auto !important;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  line-height: 1;
+}
+
+.share-story-btn:active {
+  background-color: var(--border-color);
+  transform: scale(0.96);
+}
+
+.share-icon {
+  font-size: 26rpx;
+}
+
+.vocab-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.word-favorite-btn {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background-color: var(--bg-card-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.word-favorite-btn:active {
+  transform: scale(0.85);
+}
+
+.word-favorite-btn .fav-icon {
+  font-size: 28rpx;
+  color: var(--text-muted);
+}
+
+.word-favorite-btn.active .fav-icon {
+  color: #ffd700; /* Gold star color */
+  text-shadow: 0 0 4rpx rgba(255, 215, 0, 0.4);
+}
+
+/* Favorites Sidebar (Slides out from Left) */
+.favorites-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 560rpx;
+  height: 100vh;
+  background-color: var(--bg-card);
+  z-index: 201;
+  box-shadow: 10rpx 0 30rpx rgba(0, 0, 0, 0.05);
+  transform: translateX(-100%);
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.favorites-sidebar.active {
+  transform: translateX(0);
+}
+
+.fav-list {
+  display: flex;
+  flex-direction: column;
+  padding: 24rpx;
+  gap: 20rpx;
+}
+
+.fav-item {
+  padding: 24rpx;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-app);
+  border: 2rpx solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.fav-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.fav-word-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  flex: 1;
+}
+
+.fav-word {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fav-def {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.fav-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.fav-action-btn {
+  font-size: 24rpx;
+  background-color: var(--bg-card);
+  border-radius: 50%;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid var(--border-color);
+}
+
+.fav-action-btn:active {
+  transform: scale(0.9);
+  background-color: var(--bg-card-hover);
+}
+
+.fav-action-btn.delete {
+  color: #ef4444; /* red icon */
+}
+
+.fav-example {
+  margin-top: 4rpx;
+  padding-top: 8rpx;
+  border-top: 2rpx dashed var(--border-color);
+}
+
+.fav-example-text {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  font-style: italic;
+}
