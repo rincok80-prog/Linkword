@@ -134,8 +134,14 @@
   <view class="crop-editor-backdrop" wx:if="{{showCropEditor}}">
     <view class="crop-editor-card">
       <view class="crop-editor-header">
-        <text class="crop-editor-title">涂抹要识别的区域</text>
-        <text class="crop-editor-tip">手指涂抹以高亮特定英文单词进行识别</text>
+        <view class="crop-header-top">
+          <text class="crop-editor-title">选择并识别英文</text>
+          <view class="draw-mode-selector">
+            <view class="mode-btn {{drawMode === 'brush' ? 'active' : ''}}" bindtap="changeDrawMode" data-mode="brush">✏️ 涂抹</view>
+            <view class="mode-btn {{drawMode === 'box' ? 'active' : ''}}" bindtap="changeDrawMode" data-mode="box">⬜ 框选</view>
+          </view>
+        </view>
+        <text class="crop-editor-tip">支持手指涂画高亮，或拉框选中想要识别的区域</text>
       </view>
       <view class="crop-editor-body">
         <view class="crop-image-container" style="position: relative; width: {{imageDisplayWidth}}px; height: {{imageDisplayHeight}}px; margin: 0 auto;">

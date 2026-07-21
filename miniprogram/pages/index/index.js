@@ -27,6 +27,7 @@ Page({
     navHeight: 64, // default fallback
     showCropEditor: false,
     brushSize: 'medium',
+    drawMode: 'brush',
     cropImgSrc: "",
     imageDisplayWidth: 300,
     imageDisplayHeight: 400
@@ -179,8 +180,16 @@ Page({
     if (!this.canvasCtx) return;
     const touch = e.touches[0];
     this.isDrawing = true;
+    this.startX = touch.x;
+    this.startY = touch.y;
     this.lastX = touch.x;
     this.lastY = touch.y;
+
+    if (this.data.drawMode === 'box') {
+      // Clear previous box on new touch start in Box Mode
+      this.canvasCtx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+      this.hasDrawn = false;
+    }
   },
 
   onTouchMove(e) {
@@ -188,31 +197,53 @@ Page({
     const touch = e.touches[0];
     const x = touch.x;
     const y = touch.y;
-
     const ctx = this.canvasCtx;
-    ctx.beginPath();
-    ctx.moveTo(this.lastX, this.lastY);
-    ctx.lineTo(x, y);
 
-    // Yellow brush style - dynamically adjust line width based on brushSize
-    ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
-    const sizeMode = this.data.brushSize;
-    const lineWidth = sizeMode === 'thin' ? 8 : (sizeMode === 'thick' ? 32 : 18);
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    if (this.data.drawMode === 'brush') {
+      // Brush Mode (Freehand doodle)
+      ctx.beginPath();
+      ctx.moveTo(this.lastX, this.lastY);
+      ctx.lineTo(x, y);
 
-    // Track bounding box bounds
-    const halfWidth = lineWidth / 2;
-    this.minX = Math.min(this.minX, x - halfWidth, this.lastX - halfWidth);
-    this.minY = Math.min(this.minY, y - halfWidth, this.lastY - halfWidth);
-    this.maxX = Math.max(this.maxX, x + halfWidth, this.lastX + halfWidth);
-    this.maxY = Math.max(this.maxY, y + halfWidth, this.lastY + halfWidth);
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+      const sizeMode = this.data.brushSize;
+      const lineWidth = sizeMode === 'thin' ? 8 : (sizeMode === 'thick' ? 32 : 18);
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
 
-    this.lastX = x;
-    this.lastY = y;
-    this.hasDrawn = true;
+      // Track bounding box bounds
+      const halfWidth = lineWidth / 2;
+      this.minX = Math.min(this.minX, x - halfWidth, this.lastX - halfWidth);
+      this.minY = Math.min(this.minY, y - halfWidth, this.lastY - halfWidth);
+      this.maxX = Math.max(this.maxX, x + halfWidth, this.lastX + halfWidth);
+      this.maxY = Math.max(this.maxY, y + halfWidth, this.lastY + halfWidth);
+
+      this.lastX = x;
+      this.lastY = y;
+      this.hasDrawn = true;
+    } else {
+      // Box Mode (Rectangle selection)
+      ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+      
+      // Draw semi-transparent rectangle
+      ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 3;
+      
+      const width = x - this.startX;
+      const height = y - this.startY;
+      ctx.fillRect(this.startX, this.startY, width, height);
+      ctx.strokeRect(this.startX, this.startY, width, height);
+
+      // Save exact bounding box dimensions
+      this.minX = Math.min(this.startX, x);
+      this.minY = Math.min(this.startY, y);
+      this.maxX = Math.max(this.startX, x);
+      this.maxY = Math.max(this.startY, y);
+      this.hasDrawn = true;
+    }
   },
 
   onTouchEnd() {
@@ -224,6 +255,14 @@ Page({
     this.setData({
       brushSize: size
     });
+  },
+
+  changeDrawMode(e) {
+    const mode = e.currentTarget.dataset.mode;
+    this.setData({
+      drawMode: mode
+    });
+    this.clearCropCanvas(); // Clear canvas when switching modes to prevent overlapping coordinates
   },
 
   clearCropCanvas() {

@@ -742,3 +742,31 @@
   border: 2rpx solid #ffd700;
   border-radius: 50%;
 }
+
+.crop-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.draw-mode-selector {
+  display: flex;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 30rpx;
+  padding: 4rpx;
+}
+
+.mode-btn {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 8rpx 20rpx;
+  border-radius: 26rpx;
+  transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+  background-color: var(--accent);
+  color: #ffffff;
+  font-weight: 500;
+}
