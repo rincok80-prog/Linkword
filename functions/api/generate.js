@@ -1,4 +1,5 @@
 export async function onRequestOptions(context) {
+    // Cloudflare Smart Placement trigger comment
     return new Response(null, {
         status: 200,
         headers: {
