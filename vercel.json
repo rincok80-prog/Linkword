@@ -1,1 +1,1 @@
-﻿{"rewrites": [{"source": "/v1beta/:path*", "destination": "https://generativelanguage.googleapis.com/v1beta/:path*"}]}
+{"rewrites": [{"source": "/v1beta/:path*", "destination": "https://generativelanguage.googleapis.com/v1beta/:path*"}]}
