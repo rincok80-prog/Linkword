@@ -26,6 +26,7 @@ Page({
     audioContext: null,
     navHeight: 64, // default fallback
     showCropEditor: false,
+    brushSize: 'medium',
     cropImgSrc: "",
     imageDisplayWidth: 300,
     imageDisplayHeight: 400
@@ -193,9 +194,10 @@ Page({
     ctx.moveTo(this.lastX, this.lastY);
     ctx.lineTo(x, y);
 
-    // Yellow brush style
+    // Yellow brush style - dynamically adjust line width based on brushSize
     ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
-    const lineWidth = Math.max(16, this.canvasWidth * 0.05);
+    const sizeMode = this.data.brushSize;
+    const lineWidth = sizeMode === 'thin' ? 8 : (sizeMode === 'thick' ? 32 : 18);
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -215,6 +217,13 @@ Page({
 
   onTouchEnd() {
     this.isDrawing = false;
+  },
+
+  changeBrushSize(e) {
+    const size = e.currentTarget.dataset.size;
+    this.setData({
+      brushSize: size
+    });
   },
 
   clearCropCanvas() {

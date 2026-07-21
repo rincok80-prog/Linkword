@@ -144,6 +144,11 @@
         </view>
       </view>
       <view class="crop-editor-footer">
+        <view class="brush-size-selector">
+          <view class="brush-dot thin {{brushSize === 'thin' ? 'active' : ''}}" bindtap="changeBrushSize" data-size="thin"></view>
+          <view class="brush-dot medium {{brushSize === 'medium' ? 'active' : ''}}" bindtap="changeBrushSize" data-size="medium"></view>
+          <view class="brush-dot thick {{brushSize === 'thick' ? 'active' : ''}}" bindtap="changeBrushSize" data-size="thick"></view>
+        </view>
         <view class="text-btn-sm" bindtap="clearCropCanvas">重置</view>
         <view class="crop-footer-right">
           <view class="secondary-btn-sm" bindtap="cancelCropEditor">取消</view>
