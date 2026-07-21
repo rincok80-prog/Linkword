@@ -6,6 +6,7 @@
   min-height: 100vh;
   position: relative;
   background-color: var(--bg-app);
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 }
 
 /* Header */
@@ -147,6 +148,12 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn-sm:active {
+  background-color: var(--border-color);
+  transform: scale(0.96);
 }
 
 .btn-icon {
@@ -165,13 +172,21 @@
   border-radius: var(--radius-sm);
   font-size: 26rpx;
   font-weight: 600;
-  padding: 12rpx 32rpx;
-  border: none;
-  min-height: 0 !important;
-  width: auto !important;
-  display: flex;
+  padding: 16rpx 36rpx;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.primary-btn-submit.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.primary-btn-submit:active {
+  background-color: var(--accent-hover);
+  transform: scale(0.96);
 }
 
 .spinner-small {

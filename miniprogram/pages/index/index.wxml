@@ -38,10 +38,10 @@
           <view class="text-btn-sm" bindtap="clearWords" wx:if="{{wordsInputValue}}">清空</view>
         </view>
         <view class="action-right">
-          <button class="primary-btn-submit" bindtap="handleGeneration" disabled="{{isGenerating}}">
+          <view class="primary-btn-submit {{isGenerating ? 'disabled' : ''}}" bindtap="handleGeneration">
             <text wx:if="{{!isGenerating}}">串联记忆</text>
             <view wx:else class="spinner-small"></view>
-          </button>
+          </view>
         </view>
       </view>
     </view>
@@ -111,8 +111,8 @@
   </view>
 
   <!-- Sidebar Backdrop Drawer for History -->
-  <view class="sidebar-backdrop {{showHistory ? 'active' : ''}}" bindtap="toggleHistory"></view>
-  <view class="history-sidebar {{showHistory ? 'active' : ''}}">
+  <view class="sidebar-backdrop {{showHistory ? 'active' : ''}}" bindtap="toggleHistory" style="top: {{navHeight}}px; height: calc(100vh - {{navHeight}}px);"></view>
+  <view class="history-sidebar {{showHistory ? 'active' : ''}}" style="top: {{navHeight}}px; height: calc(100vh - {{navHeight}}px);">
     <view class="sidebar-header">
       <text class="sidebar-title">记忆历史</text>
       <view class="clear-history-btn" bindtap="clearHistory">清空</view>

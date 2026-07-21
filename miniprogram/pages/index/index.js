@@ -23,11 +23,34 @@ Page({
     showHistory: false,
     currentTip: loadingTips[0],
     tipIntervalId: null,
-    audioContext: null
+    audioContext: null,
+    navHeight: 64 // default fallback
   },
 
   onLoad() {
     this.loadHistory();
+    this.calculateNavHeight();
+  },
+
+  calculateNavHeight() {
+    try {
+      const sysInfo = wx.getSystemInfoSync();
+      const rect = wx.getMenuButtonBoundingClientRect();
+      // Navigation bar height = capsule bottom + 8px spacing
+      let navHeight = rect.bottom + 8;
+      if (!navHeight || navHeight < 40) {
+        navHeight = sysInfo.statusBarHeight + 44; 
+      }
+      this.setData({
+        navHeight: navHeight
+      });
+      console.log('Calculated NavHeight:', navHeight);
+    } catch (e) {
+      console.error('Failed to get menu button rect:', e);
+      this.setData({
+        navHeight: 80 // fallback
+      });
+    }
   },
 
   onUnload() {
@@ -153,6 +176,8 @@ Page({
 
   // Main generator trigger
   handleGeneration() {
+    if (this.data.isGenerating) return;
+
     const rawInput = this.data.wordsInputValue.trim();
     if (!rawInput) {
       wx.showToast({
