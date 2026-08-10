@@ -1359,9 +1359,9 @@ JSON Schema 结构：
                     onlineVocabResults = data.results.map(item => ({
                         word: item.word,
                         phonetic: item.phonetic || '',
-                        pos: item.pos || '',
-                        def: item.def,
-                        catName: isChinese ? '中文候选词' : '词典释义',
+                        pos: item.pos || (isChinese ? '翻译' : '释义'),
+                        def: item.def || query,
+                        catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
                         isOnline: true
                     }));
                     renderVocabList();

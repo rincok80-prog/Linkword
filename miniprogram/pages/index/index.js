@@ -223,9 +223,9 @@ Page({
           const onlineResults = res.data.results.map(item => ({
             word: item.word,
             phonetic: item.phonetic || '',
-            pos: item.pos || '',
-            def: item.def,
-            catName: isChinese ? '中文候选词' : '词典释义',
+            pos: item.pos || (isChinese ? '翻译' : '释义'),
+            def: item.def || query,
+            catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
             isOnline: true
           }));
 
@@ -234,7 +234,7 @@ Page({
             const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
             const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
 
-            // Priority: Exact match or online results at the top
+            // Place real-time translations and lexical candidates at the very top
             this.setData({
               filteredVocabList: [...newWords, ...currentFiltered],
               isSearchingOnline: false
