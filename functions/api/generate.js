@@ -41,13 +41,13 @@ export async function onRequestPost(context) {
             });
         }
         
-        const prompt = `您是英语老师。请使用以下单词：[${words.join(', ')}]。
-请用极其简单、好懂的初中词汇写一段3句话的英语小故事。
+        const prompt = `您是英语教学与联想记忆专家。请使用以下单词：[${words.join(', ')}]。
+请用通俗易懂的初中词汇创作一段极简（不超过3句话）、生动有趣的英语小故事，帮助学生快速联想并牢记这几个单词。
 
-请严格以无任何 markdown 包裹标记的纯 JSON 字符串返回：
+请严格以无任何额外文字、无 markdown 包裹的纯 JSON 格式返回：
 {
-  "story": "小故事内容（在故事中用 <strong>单词</strong> 标签标出目标词，故事必须极简、通俗好懂，避免任何复杂的从句）",
-  "story_translation": "故事的中文翻译",
+  "story": "小故事内容（在故事中必须出现所有输入的单词，并用 <strong>单词</strong> 标签加粗标出目标词，故事必须极简易懂）",
+  "story_translation": "对应故事的中文翻译",
   "words": [
     {
       "word": "目标词",
@@ -59,11 +59,77 @@ export async function onRequestPost(context) {
   ]
 }
 
-注意：故事必须逻辑通顺，所有英文句子和例句必须非常简单易懂。为了防止 JSON 解析失败，如果英文故事或例句中需要使用引号，请必须使用单引号（'），绝对不要在 JSON 的属性值内直接使用未转义的双引号（"）。`;
+注意：
+1. 故事必须生动有趣、逻辑通顺，所有英文句子和例句必须非常简单易懂。
+2. 为了防止 JSON 解析失败，故事或例句中如需使用引号，请使用单引号（'），绝对不要在 JSON 属性值内直接使用未转义的双引号（"）。`;
 
-        // Final Cloudflare rebuild trigger after PROXY_HOST is fully configured in settings
+        // 1. Primary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
+        const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
+        
+        try {
+            const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${WECHAT_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "Deepseek-v4-flash",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a professional assistant that outputs ONLY pure, valid JSON format strings."
+                        },
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.3
+                })
+            });
+
+            if (wechatResp.ok) {
+                const wechatJson = await wechatResp.json();
+                let rawText = wechatJson?.choices?.[0]?.message?.content || "";
+                rawText = rawText.trim();
+                
+                if (rawText.startsWith("```")) {
+                    rawText = rawText.replace(/^```[a-zA-Z]*\n?/, "");
+                }
+                if (rawText.endsWith("```")) {
+                    rawText = rawText.replace(/```$/, "");
+                }
+                rawText = rawText.trim();
+
+                const firstBrace = rawText.indexOf('{');
+                const lastBrace = rawText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    rawText = rawText.substring(firstBrace, lastBrace + 1);
+                }
+
+                JSON.parse(rawText);
+
+                return new Response(rawText, {
+                    status: 200,
+                    headers: corsHeaders
+                });
+            }
+        } catch (wechatErr) {
+            console.error("WeChat AI Engine fallback to Gemini:", wechatErr);
+        }
+
+        // 2. Fallback Engine: Google Gemini Flash
+        const GEMINI_KEY = env.GEMINI_KEY || "";
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
+
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
+                status: 500,
+                headers: corsHeaders
+            });
+        }
 
         const response = await fetch(`https://${apiHost}/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
@@ -102,7 +168,6 @@ export async function onRequestPost(context) {
             jsonText = jsonText.substring(firstBrace, lastBrace + 1);
         }
         
-        // Verify JSON parse
         JSON.parse(jsonText);
         
         return new Response(jsonText, {
