@@ -1,14 +1,5 @@
 // pages/index/index.js
 const app = getApp();
-const { VOCAB_DATABASE } = require('../../utils/vocab_db.js');
-
-const catNameMap = {
-  gaokao: '高考',
-  cet4: '四级',
-  cet6: '六级',
-  kaoyan: '考研',
-  ielts: '雅思'
-};
 
 const loadingTips = [
   "正在用英文构思引人入胜的故事情节...",
@@ -28,6 +19,8 @@ Page({
     storyHtml: "",
     storyTranslation: "",
     vocabList: [],
+    errorMessage: "",
+    speakingWord: "",
     historyList: [],
     showHistory: false,
     currentTip: loadingTips[0],
@@ -41,45 +34,13 @@ Page({
     imageDisplayWidth: 300,
     imageDisplayHeight: 400,
     showFavorites: false,
-    favoritesList: [],
-    selectedStyle: 'humorous',
-    styleOptions: [
-      { id: 'humorous', name: '幽默爆笑', icon: '😆' },
-      { id: 'scifi', name: '科幻冒险', icon: '🚀' },
-      { id: 'mystery', name: '悬疑推理', icon: '🕵️' },
-      { id: 'warm', name: '治愈童话', icon: '🌸' }
-    ],
-    quickPacks: [
-      { label: '🔥 四六级核心', words: 'nostalgia, obsolete, pristine' },
-      { label: '🎓 考研必背', words: 'aesthetic, coherent, dilemma' },
-      { label: '📘 高考必备', words: 'flexible, genuine, hazard' },
-      { label: '✈️ 雅思进阶', words: 'subtle, vulnerable, ambiguous' }
-    ],
-    showVocabModal: false,
-    vocabSearchQuery: "",
-    isSearchingOnline: false,
-    selectedVocabCat: "all",
-    selectedVocabMap: {},
-    selectedVocabCount: 0,
-    allVocabList: [],
-    filteredVocabList: [],
-    vocabCategories: [
-      { id: 'all', name: '全部', count: 0 },
-      { id: 'gaokao', name: '📘 高考', count: 0 },
-      { id: 'cet4', name: '🔥 四级', count: 0 },
-      { id: 'cet6', name: '🎓 六级', count: 0 },
-      { id: 'kaoyan', name: '📖 考研', count: 0 },
-      { id: 'ielts', name: '✈️ 雅思', count: 0 }
-    ]
+    favoritesList: []
   },
-
-  searchTimer: null,
 
   onLoad() {
     this.loadHistory();
     this.calculateNavHeight();
     this.loadFavorites();
-    this.initVocabDatabase();
   },
 
   calculateNavHeight() {
@@ -125,260 +86,6 @@ Page({
       wordsInputValue: "",
       showEmptyState: true,
       showOutput: false
-    });
-  },
-
-  // Select story narrative tone style
-  onSelectStyle(e) {
-    const style = e.currentTarget.dataset.style;
-    this.setData({
-      selectedStyle: style
-    });
-  },
-
-  // Select pre-curated demo word pack
-  onSelectQuickPack(e) {
-    const words = e.currentTarget.dataset.words;
-    this.setData({
-      wordsInputValue: words
-    });
-    wx.showToast({
-      title: '已填入，点击串联记忆',
-      icon: 'none',
-      duration: 1500
-    });
-  },
-
-  // ==========================================================================
-  // Vocab Database Index & Search Methods
-  // ==========================================================================
-  initVocabDatabase() {
-    const list = (VOCAB_DATABASE || []).map(item => ({
-      ...item,
-      catName: catNameMap[item.category] || '通用'
-    }));
-
-    const counts = {
-      all: list.length,
-      gaokao: list.filter(w => w.category === 'gaokao').length,
-      cet4: list.filter(w => w.category === 'cet4').length,
-      cet6: list.filter(w => w.category === 'cet6').length,
-      kaoyan: list.filter(w => w.category === 'kaoyan').length,
-      ielts: list.filter(w => w.category === 'ielts').length
-    };
-
-    const categories = [
-      { id: 'all', name: '全部', count: counts.all },
-      { id: 'gaokao', name: '📘 高考', count: counts.gaokao },
-      { id: 'cet4', name: '🔥 四级', count: counts.cet4 },
-      { id: 'cet6', name: '🎓 六级', count: counts.cet6 },
-      { id: 'kaoyan', name: '📖 考研', count: counts.kaoyan },
-      { id: 'ielts', name: '✈️ 雅思', count: counts.ielts }
-    ];
-
-    this.setData({
-      allVocabList: list,
-      filteredVocabList: list,
-      vocabCategories: categories
-    });
-  },
-
-  openVocabIndex() {
-    this.setData({
-      showVocabModal: true
-    });
-    this.filterVocabList();
-  },
-
-  closeVocabIndex() {
-    this.setData({
-      showVocabModal: false
-    });
-  },
-
-  onVocabSearchInput(e) {
-    const val = e.detail.value;
-    this.setData({
-      vocabSearchQuery: val
-    });
-    this.filterVocabList();
-
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    const query = (val || '').trim();
-    if (query.length >= 1) {
-      this.searchTimer = setTimeout(() => {
-        this.queryOnlineDict(query);
-      }, 350);
-    } else {
-      this.setData({ isSearchingOnline: false });
-    }
-  },
-
-  clearVocabSearch() {
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.setData({
-      vocabSearchQuery: "",
-      isSearchingOnline: false
-    });
-    this.filterVocabList();
-  },
-
-  queryOnlineDict(query) {
-    if (!query) return;
-    const isChinese = /[\u4e00-\u9fa5]/.test(query);
-    this.setData({ isSearchingOnline: true });
-
-    wx.request({
-      url: `https://linkword.pages.dev/api/dict?q=${encodeURIComponent(query)}`,
-      method: 'GET',
-      success: (res) => {
-        if (res.statusCode === 200 && res.data && Array.isArray(res.data.results)) {
-          const onlineResults = res.data.results.map(item => ({
-            word: item.word,
-            phonetic: item.phonetic || '',
-            pos: item.pos || '释义',
-            def: item.def,
-            category: 'online',
-            catName: isChinese ? '🌐 在线翻译' : '🌐 词典直查',
-            freq: 1,
-            isOnline: true
-          }));
-
-          if (onlineResults.length > 0) {
-            const currentFiltered = [...this.data.filteredVocabList];
-            const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
-            const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
-
-            if (isChinese) {
-              this.setData({
-                filteredVocabList: [...newWords, ...currentFiltered],
-                isSearchingOnline: false
-              });
-            } else {
-              this.setData({
-                filteredVocabList: [...currentFiltered, ...newWords],
-                isSearchingOnline: false
-              });
-            }
-          } else {
-            this.setData({ isSearchingOnline: false });
-          }
-        } else {
-          this.setData({ isSearchingOnline: false });
-        }
-      },
-      fail: () => {
-        this.setData({ isSearchingOnline: false });
-      }
-    });
-  },
-
-  onSelectVocabCat(e) {
-    const cat = e.currentTarget.dataset.cat;
-    this.setData({
-      selectedVocabCat: cat
-    });
-    this.filterVocabList();
-  },
-
-  filterVocabList() {
-    const { allVocabList, selectedVocabCat, vocabSearchQuery } = this.data;
-    const query = (vocabSearchQuery || '').trim().toLowerCase();
-
-    let filtered = allVocabList;
-    if (selectedVocabCat && selectedVocabCat !== 'all') {
-      filtered = filtered.filter(item => item.category === selectedVocabCat);
-    }
-
-    if (query) {
-      filtered = filtered.filter(item => {
-        return item.word.toLowerCase().includes(query) || (item.def && item.def.includes(query));
-      });
-
-      // Priority Sort: Prefix match > High frequency (freq 1) > Alphabetical
-      filtered.sort((a, b) => {
-        const aWord = a.word.toLowerCase();
-        const bWord = b.word.toLowerCase();
-        const aStarts = aWord.startsWith(query) ? 0 : 1;
-        const bStarts = bWord.startsWith(query) ? 0 : 1;
-        if (aStarts !== bStarts) return aStarts - bStarts;
-        if (a.freq !== b.freq) return (a.freq || 1) - (b.freq || 1);
-        return aWord.localeCompare(bWord);
-      });
-    }
-
-    this.setData({
-      filteredVocabList: filtered
-    });
-  },
-
-  toggleSelectVocabItem(e) {
-    const word = e.currentTarget.dataset.word;
-    const selectedMap = { ...this.data.selectedVocabMap };
-
-    if (selectedMap[word]) {
-      delete selectedMap[word];
-    } else {
-      selectedMap[word] = true;
-    }
-
-    const count = Object.keys(selectedMap).length;
-    this.setData({
-      selectedVocabMap: selectedMap,
-      selectedVocabCount: count
-    });
-  },
-
-  randomPick3Words() {
-    const { filteredVocabList, allVocabList } = this.data;
-    const pool = (filteredVocabList && filteredVocabList.length >= 3) ? filteredVocabList : allVocabList;
-    if (!pool || pool.length === 0) return;
-
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    const picked = shuffled.slice(0, 3);
-
-    const selectedMap = {};
-    picked.forEach(item => {
-      selectedMap[item.word] = true;
-    });
-
-    this.setData({
-      selectedVocabMap: selectedMap,
-      selectedVocabCount: picked.length
-    });
-
-    wx.showToast({
-      title: `已随机挑选 ${picked.length} 词`,
-      icon: 'none',
-      duration: 1200
-    });
-  },
-
-  clearSelectedVocab() {
-    this.setData({
-      selectedVocabMap: {},
-      selectedVocabCount: 0
-    });
-  },
-
-  applySelectedVocab() {
-    const selectedWords = Object.keys(this.data.selectedVocabMap);
-    if (selectedWords.length === 0) {
-      wx.showToast({
-        title: '请先勾选单词',
-        icon: 'none'
-      });
-      return;
-    }
-
-    this.setData({
-      wordsInputValue: selectedWords.join(', '),
-      showVocabModal: false
-    });
-
-    wx.showToast({
-      title: `已填入 ${selectedWords.length} 个单词`,
-      icon: 'success'
     });
   },
 
