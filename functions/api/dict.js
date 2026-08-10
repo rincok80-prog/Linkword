@@ -109,15 +109,25 @@ export async function onRequestGet(context) {
                     for (const witem of ceWords) {
                         const trs = witem?.trs || [];
                         for (const tr of trs) {
-                            const iList = tr?.tr?.[0]?.l?.i || [];
-                            for (const item of iList) {
-                                if (typeof item === 'string') {
-                                    const cleanW = item.replace(/[^a-zA-Z\s-]/g, '').trim();
+                            for (const item of (tr?.tr || [])) {
+                                const lObj = item?.l;
+                                const pos = lObj?.pos || '对应英文';
+                                const tran = lObj?.['#tran'] || q;
+                                let iList = lObj?.i || [];
+                                if (!Array.isArray(iList)) iList = [iList];
+                                for (const iItem of iList) {
+                                    let wordStr = '';
+                                    if (typeof iItem === 'string') {
+                                        wordStr = iItem;
+                                    } else if (iItem && typeof iItem === 'object') {
+                                        wordStr = iItem['#text'] || iItem.i || '';
+                                    }
+                                    const cleanW = wordStr.replace(/[^a-zA-Z\s-]/g, '').trim();
                                     if (cleanW && cleanW.length > 1 && !results.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
                                         results.push({
                                             word: cleanW,
-                                            pos: '同义表达',
-                                            def: q,
+                                            pos: pos,
+                                            def: tran || q,
                                             phonetic: '',
                                             source: 'online_ce_dict',
                                             isChineseQuery: true

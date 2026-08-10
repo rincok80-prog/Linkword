@@ -223,93 +223,184 @@ Page({
     const isChinese = /[\u4e00-\u9fa5]/.test(query);
     this.setData({ isSearchingOnline: true });
 
-    wx.request({
-      url: `https://linkword.pages.dev/api/dict?q=${encodeURIComponent(query)}`,
-      method: 'GET',
-      timeout: 5000,
-      success: (res) => {
-        if (res.statusCode === 200 && res.data) {
-          const onlineResults = [];
+    const handleSuccessData = (data) => {
+      const onlineResults = [];
 
-          // 1. Check for structured results array
-          if (Array.isArray(res.data.results) && res.data.results.length > 0) {
-            for (const item of res.data.results) {
-              if (item && item.word) {
+      // 1. Structured results
+      if (Array.isArray(data?.results) && data.results.length > 0) {
+        for (const item of data.results) {
+          if (item && item.word) {
+            onlineResults.push({
+              word: item.word,
+              phonetic: item.phonetic || '',
+              pos: item.pos || (isChinese ? '对应英文' : '释义'),
+              def: item.def || query,
+              catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
+              isOnline: true
+            });
+          }
+        }
+      }
+
+      // 2. Youdao entries format
+      const entries = data?.data?.entries || data?.entries || [];
+      if (Array.isArray(entries) && entries.length > 0) {
+        for (const item of entries) {
+          const entry = item.entry || '';
+          const explain = item.explain || '';
+          if (isChinese) {
+            const rawCands = explain.split(/[,;；，/、\n]/);
+            for (const cand of rawCands) {
+              const cleanW = cand.replace(/[^a-zA-Z\s-]/g, '').trim();
+              if (cleanW && cleanW.length > 1 && !onlineResults.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
                 onlineResults.push({
-                  word: item.word,
-                  phonetic: item.phonetic || '',
-                  pos: item.pos || (isChinese ? '对应英文' : '释义'),
-                  def: item.def || query,
-                  catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
+                  word: cleanW,
+                  phonetic: '',
+                  pos: '对应英文',
+                  def: entry || query,
+                  catName: '🌐 实时翻译',
                   isOnline: true
                 });
               }
             }
+          } else {
+            if (entry && !onlineResults.some(r => r.word.toLowerCase() === entry.toLowerCase())) {
+              let pos = '释义';
+              let defText = explain;
+              const posMatch = explain.match(/^([a-z]+\.)\s*(.+)$/i);
+              if (posMatch) {
+                pos = posMatch[1];
+                defText = posMatch[2];
+              }
+              onlineResults.push({
+                word: entry,
+                phonetic: '',
+                pos: pos,
+                def: defText,
+                catName: '📖 词典释义',
+                isOnline: true
+              });
+            }
           }
+        }
+      }
 
-          // 2. Check for Youdao entries array format
-          const entries = res.data?.data?.entries || res.data?.entries || [];
-          if (Array.isArray(entries) && entries.length > 0) {
-            for (const item of entries) {
-              const entry = item.entry || '';
-              const explain = item.explain || '';
-              if (isChinese) {
-                const rawCands = explain.split(/[,;；，/、\n]/);
-                for (const cand of rawCands) {
-                  const cleanW = cand.replace(/[^a-zA-Z\s-]/g, '').trim();
-                  if (cleanW && cleanW.length > 1 && !onlineResults.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
-                    onlineResults.push({
-                      word: cleanW,
-                      phonetic: '',
-                      pos: '对应英文',
-                      def: entry || query,
-                      catName: '🌐 实时翻译',
-                      isOnline: true
-                    });
-                  }
+      // 3. Youdao CE Dictionary (handles words like 傻子, 笨蛋, 坚持, 绝望)
+      const ceWords = data?.ce?.word || [];
+      if (Array.isArray(ceWords) && ceWords.length > 0) {
+        for (const witem of ceWords) {
+          const trs = witem?.trs || [];
+          for (const tr of trs) {
+            for (const item of (tr?.tr || [])) {
+              const lObj = item?.l;
+              const pos = lObj?.pos || '对应英文';
+              const tran = lObj?.['#tran'] || query;
+              let iList = lObj?.i || [];
+              if (!Array.isArray(iList)) iList = [iList];
+              for (const iItem of iList) {
+                let wordStr = '';
+                if (typeof iItem === 'string') {
+                  wordStr = iItem;
+                } else if (iItem && typeof iItem === 'object') {
+                  wordStr = iItem['#text'] || iItem.i || '';
                 }
-              } else {
-                if (entry && !onlineResults.some(r => r.word.toLowerCase() === entry.toLowerCase())) {
-                  let pos = '释义';
-                  let defText = explain;
-                  const posMatch = explain.match(/^([a-z]+\.)\s*(.+)$/i);
-                  if (posMatch) {
-                    pos = posMatch[1];
-                    defText = posMatch[2];
-                  }
+                const cleanW = wordStr.replace(/[^a-zA-Z\s-]/g, '').trim();
+                if (cleanW && cleanW.length > 1 && !onlineResults.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
                   onlineResults.push({
-                    word: entry,
+                    word: cleanW,
                     phonetic: '',
                     pos: pos,
-                    def: defText,
-                    catName: '📖 词典释义',
+                    def: tran || query,
+                    catName: '📖 中英词典',
                     isOnline: true
                   });
                 }
               }
             }
           }
+        }
+      }
 
-          if (onlineResults.length > 0) {
-            const currentFiltered = [...this.data.filteredVocabList];
-            const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
-            const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+      return onlineResults;
+    };
 
-            // Place real-time translations and lexical candidates at the very top, cap at 35
-            const merged = [...newWords, ...currentFiltered].slice(0, 35);
-            this.setData({
-              filteredVocabList: merged,
-              isSearchingOnline: false
-            });
-          } else {
-            this.setData({ isSearchingOnline: false });
-          }
+    wx.request({
+      url: `https://linkword.pages.dev/api/dict?q=${encodeURIComponent(query)}`,
+      method: 'GET',
+      timeout: 5000,
+      success: (res) => {
+        let results = [];
+        if (res.statusCode === 200 && res.data) {
+          results = handleSuccessData(res.data);
+        }
+
+        if (results.length > 0) {
+          const currentFiltered = [...this.data.filteredVocabList];
+          const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
+          const newWords = results.filter(w => !existingWords.has(w.word.toLowerCase()));
+          const merged = [...newWords, ...currentFiltered].slice(0, 35);
+          this.setData({
+            filteredVocabList: merged,
+            isSearchingOnline: false
+          });
+        } else if (isChinese) {
+          // Fallback directly to CE jsonapi
+          wx.request({
+            url: `https://dict.youdao.com/jsonapi?q=${encodeURIComponent(query)}&dicts=%7B%22count%22%3A1%2C%22dicts%22%3A%5B%5B%22ce%22%5D%5D%7D`,
+            method: 'GET',
+            timeout: 5000,
+            success: (ceRes) => {
+              const ceResults = handleSuccessData(ceRes.data);
+              if (ceResults.length > 0) {
+                const currentFiltered = [...this.data.filteredVocabList];
+                const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
+                const newWords = ceResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+                const merged = [...newWords, ...currentFiltered].slice(0, 35);
+                this.setData({
+                  filteredVocabList: merged,
+                  isSearchingOnline: false
+                });
+              } else {
+                this.setData({ isSearchingOnline: false });
+              }
+            },
+            fail: () => {
+              this.setData({ isSearchingOnline: false });
+            }
+          });
         } else {
           this.setData({ isSearchingOnline: false });
         }
       },
       fail: () => {
-        this.setData({ isSearchingOnline: false });
+        if (isChinese) {
+          // Direct fallback to CE jsonapi
+          wx.request({
+            url: `https://dict.youdao.com/jsonapi?q=${encodeURIComponent(query)}&dicts=%7B%22count%22%3A1%2C%22dicts%22%3A%5B%5B%22ce%22%5D%5D%7D`,
+            method: 'GET',
+            timeout: 5000,
+            success: (ceRes) => {
+              const ceResults = handleSuccessData(ceRes.data);
+              if (ceResults.length > 0) {
+                const currentFiltered = [...this.data.filteredVocabList];
+                const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
+                const newWords = ceResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+                const merged = [...newWords, ...currentFiltered].slice(0, 35);
+                this.setData({
+                  filteredVocabList: merged,
+                  isSearchingOnline: false
+                });
+              } else {
+                this.setData({ isSearchingOnline: false });
+              }
+            },
+            fail: () => {
+              this.setData({ isSearchingOnline: false });
+            }
+          });
+        } else {
+          this.setData({ isSearchingOnline: false });
+        }
       }
     });
   },

@@ -1414,6 +1414,42 @@ JSON Schema 结构：
                     }
                 }
 
+                // 3. Youdao CE Dictionary
+                const ceWords = data?.ce?.word || [];
+                if (Array.isArray(ceWords) && ceWords.length > 0) {
+                    for (const witem of ceWords) {
+                        const trs = witem?.trs || [];
+                        for (const tr of trs) {
+                            for (const item of (tr?.tr || [])) {
+                                const lObj = item?.l;
+                                const pos = lObj?.pos || '对应英文';
+                                const tran = lObj?.['#tran'] || query;
+                                let iList = lObj?.i || [];
+                                if (!Array.isArray(iList)) iList = [iList];
+                                for (const iItem of iList) {
+                                    let wordStr = '';
+                                    if (typeof iItem === 'string') {
+                                        wordStr = iItem;
+                                    } else if (iItem && typeof iItem === 'object') {
+                                        wordStr = iItem['#text'] || iItem.i || '';
+                                    }
+                                    const cleanW = wordStr.replace(/[^a-zA-Z\s-]/g, '').trim();
+                                    if (cleanW && cleanW.length > 1 && !onlineResults.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
+                                        onlineResults.push({
+                                            word: cleanW,
+                                            phonetic: '',
+                                            pos: pos,
+                                            def: tran || query,
+                                            catName: '📖 中英词典',
+                                            isOnline: true
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (onlineResults.length > 0) {
                     onlineVocabResults = onlineResults;
                     renderVocabList();
