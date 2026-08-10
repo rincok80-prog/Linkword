@@ -83,7 +83,10 @@
 
                     <!-- Quick Demo Word Packs -->
                     <div class="quick-packs-container">
-                        <span class="quick-title">⚡ 快速体验词包：</span>
+                        <div class="quick-header-row">
+                            <span class="quick-title">⚡ 快速体验词包：</span>
+                            <button type="button" id="open-vocab-modal-btn" class="vocab-index-link">📚 全量词库与搜索索引 ›</button>
+                        </div>
                         <div class="quick-chips-group">
                             <button type="button" class="quick-chip-btn" data-words="nostalgia, obsolete, pristine">🔥 四六级高频</button>
                             <button type="button" class="quick-chip-btn" data-words="aesthetic, coherent, dilemma">🎓 考研必背</button>
@@ -302,11 +305,55 @@
             </div>
         </div>
 
+        <!-- Vocab Database & Search Index Modal -->
+        <div id="vocab-modal" class="modal-backdrop hidden">
+            <div class="modal-card vocab-modal-dialog">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <h3>📚 官方分级词库与检索中心</h3>
+                        <p class="modal-desc">内置高考、四级、六级、考研、雅思高频核心词库</p>
+                    </div>
+                    <button id="close-vocab-modal-btn" class="close-btn">&times;</button>
+                </div>
+                
+                <div class="vocab-modal-body">
+                    <!-- Search Field -->
+                    <div class="vocab-search-bar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="vocab-search-input" placeholder="输入英文或中文进行实时搜索 (例如: pristine 或 怀旧)..." autocomplete="off" />
+                        <button type="button" id="clear-vocab-search-btn" class="clear-search-btn hidden">&times;</button>
+                    </div>
+
+                    <!-- Category Tabs -->
+                    <div class="vocab-cat-tabs" id="vocab-cat-tabs">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Word List Grid -->
+                    <div class="vocab-list-container" id="vocab-list-container">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <div class="modal-footer vocab-modal-footer">
+                    <div class="footer-left">
+                        <button type="button" id="vocab-random-pick-btn" class="secondary-btn">🎲 随机挑3词</button>
+                        <span id="vocab-selected-badge" class="vocab-selected-badge hidden">已选 0 词</span>
+                    </div>
+                    <div class="footer-right">
+                        <button type="button" id="vocab-clear-selected-btn" class="text-btn hidden">清空</button>
+                        <button type="button" id="vocab-apply-btn" class="primary-btn" disabled>填入到输入框 (0)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     
     <!-- Global Audio Player for Mobile Compatibility -->
     <audio id="global-player" style="display: none;" preload="auto"></audio>
     
+    <script src="vocab_db.js?v=3.0"></script>
     <script src="app.js?v=3.0"></script>
 </body>
 </html>

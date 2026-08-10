@@ -1,5 +1,14 @@
 // pages/index/index.js
 const app = getApp();
+const { VOCAB_DATABASE } = require('../../utils/vocab_db.js');
+
+const catNameMap = {
+  gaokao: '高考',
+  cet4: '四级',
+  cet6: '六级',
+  kaoyan: '考研',
+  ielts: '雅思'
+};
 
 const loadingTips = [
   "正在用英文构思引人入胜的故事情节...",
@@ -45,6 +54,21 @@ Page({
       { label: '🎓 考研必背', words: 'aesthetic, coherent, dilemma' },
       { label: '📘 高考必备', words: 'flexible, genuine, hazard' },
       { label: '✈️ 雅思进阶', words: 'subtle, vulnerable, ambiguous' }
+    ],
+    showVocabModal: false,
+    vocabSearchQuery: "",
+    selectedVocabCat: "all",
+    selectedVocabMap: {},
+    selectedVocabCount: 0,
+    allVocabList: [],
+    filteredVocabList: [],
+    vocabCategories: [
+      { id: 'all', name: '全部', count: 0 },
+      { id: 'gaokao', name: '📘 高考', count: 0 },
+      { id: 'cet4', name: '🔥 四级', count: 0 },
+      { id: 'cet6', name: '🎓 六级', count: 0 },
+      { id: 'kaoyan', name: '📖 考研', count: 0 },
+      { id: 'ielts', name: '✈️ 雅思', count: 0 }
     ]
   },
 
@@ -52,6 +76,7 @@ Page({
     this.loadHistory();
     this.calculateNavHeight();
     this.loadFavorites();
+    this.initVocabDatabase();
   },
 
   calculateNavHeight() {
@@ -118,6 +143,165 @@ Page({
       title: '已填入，点击串联记忆',
       icon: 'none',
       duration: 1500
+    });
+  },
+
+  // ==========================================================================
+  // Vocab Database Index & Search Methods
+  // ==========================================================================
+  initVocabDatabase() {
+    const list = (VOCAB_DATABASE || []).map(item => ({
+      ...item,
+      catName: catNameMap[item.category] || '通用'
+    }));
+
+    const counts = {
+      all: list.length,
+      gaokao: list.filter(w => w.category === 'gaokao').length,
+      cet4: list.filter(w => w.category === 'cet4').length,
+      cet6: list.filter(w => w.category === 'cet6').length,
+      kaoyan: list.filter(w => w.category === 'kaoyan').length,
+      ielts: list.filter(w => w.category === 'ielts').length
+    };
+
+    const categories = [
+      { id: 'all', name: '全部', count: counts.all },
+      { id: 'gaokao', name: '📘 高考', count: counts.gaokao },
+      { id: 'cet4', name: '🔥 四级', count: counts.cet4 },
+      { id: 'cet6', name: '🎓 六级', count: counts.cet6 },
+      { id: 'kaoyan', name: '📖 考研', count: counts.kaoyan },
+      { id: 'ielts', name: '✈️ 雅思', count: counts.ielts }
+    ];
+
+    this.setData({
+      allVocabList: list,
+      filteredVocabList: list,
+      vocabCategories: categories
+    });
+  },
+
+  openVocabIndex() {
+    this.setData({
+      showVocabModal: true
+    });
+    this.filterVocabList();
+  },
+
+  closeVocabIndex() {
+    this.setData({
+      showVocabModal: false
+    });
+  },
+
+  onVocabSearchInput(e) {
+    this.setData({
+      vocabSearchQuery: e.detail.value
+    });
+    this.filterVocabList();
+  },
+
+  clearVocabSearch() {
+    this.setData({
+      vocabSearchQuery: ""
+    });
+    this.filterVocabList();
+  },
+
+  onSelectVocabCat(e) {
+    const cat = e.currentTarget.dataset.cat;
+    this.setData({
+      selectedVocabCat: cat
+    });
+    this.filterVocabList();
+  },
+
+  filterVocabList() {
+    const { allVocabList, selectedVocabCat, vocabSearchQuery } = this.data;
+    const query = (vocabSearchQuery || '').trim().toLowerCase();
+
+    let filtered = allVocabList;
+    if (selectedVocabCat && selectedVocabCat !== 'all') {
+      filtered = filtered.filter(item => item.category === selectedVocabCat);
+    }
+
+    if (query) {
+      filtered = filtered.filter(item => {
+        return item.word.toLowerCase().includes(query) || item.def.includes(query);
+      });
+    }
+
+    this.setData({
+      filteredVocabList: filtered
+    });
+  },
+
+  toggleSelectVocabItem(e) {
+    const word = e.currentTarget.dataset.word;
+    const selectedMap = { ...this.data.selectedVocabMap };
+
+    if (selectedMap[word]) {
+      delete selectedMap[word];
+    } else {
+      selectedMap[word] = true;
+    }
+
+    const count = Object.keys(selectedMap).length;
+    this.setData({
+      selectedVocabMap: selectedMap,
+      selectedVocabCount: count
+    });
+  },
+
+  randomPick3Words() {
+    const { filteredVocabList, allVocabList } = this.data;
+    const pool = (filteredVocabList && filteredVocabList.length >= 3) ? filteredVocabList : allVocabList;
+    if (!pool || pool.length === 0) return;
+
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    const picked = shuffled.slice(0, 3);
+
+    const selectedMap = {};
+    picked.forEach(item => {
+      selectedMap[item.word] = true;
+    });
+
+    this.setData({
+      selectedVocabMap: selectedMap,
+      selectedVocabCount: picked.length
+    });
+
+    wx.showToast({
+      title: `已随机挑选 ${picked.length} 词`,
+      icon: 'none',
+      duration: 1200
+    });
+  },
+
+  clearSelectedVocab() {
+    this.setData({
+      selectedVocabMap: {},
+      selectedVocabCount: 0
+    });
+  },
+
+  applySelectedVocab() {
+    const selectedWords = Object.keys(this.data.selectedVocabMap);
+    if (selectedWords.length === 0) {
+      wx.showToast({
+        title: '请先勾选单词',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({
+      wordsInputValue: selectedWords.join(', '),
+      showVocabModal: false
+    });
+
+    wx.showToast({
+      title: `已填入 ${selectedWords.length} 个单词`,
+      icon: 'success'
     });
   },
 

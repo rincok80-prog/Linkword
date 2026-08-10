@@ -68,6 +68,19 @@ document.addEventListener('DOMContentLoaded', () => {
         cropClearBtn: document.getElementById('crop-clear-btn'),
         cropCancelBtn: document.getElementById('crop-cancel-btn'),
         cropConfirmBtn: document.getElementById('crop-confirm-btn'),
+
+        // Vocab Index Modal Elements
+        openVocabModalBtn: document.getElementById('open-vocab-modal-btn'),
+        closeVocabModalBtn: document.getElementById('close-vocab-modal-btn'),
+        vocabModal: document.getElementById('vocab-modal'),
+        vocabSearchInput: document.getElementById('vocab-search-input'),
+        clearVocabSearchBtn: document.getElementById('clear-vocab-search-btn'),
+        vocabCatTabs: document.getElementById('vocab-cat-tabs'),
+        vocabListContainer: document.getElementById('vocab-list-container'),
+        vocabRandomPickBtn: document.getElementById('vocab-random-pick-btn'),
+        vocabSelectedBadge: document.getElementById('vocab-selected-badge'),
+        vocabClearSelectedBtn: document.getElementById('vocab-clear-selected-btn'),
+        vocabApplyBtn: document.getElementById('vocab-apply-btn'),
     };
 
     // App State
@@ -82,7 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stream: null,
         selectedImageBase64: null,
         selectedImageMime: null,
-        selectedStyle: 'humorous'
+        selectedStyle: 'humorous',
+        selectedVocabMap: {},
+        selectedVocabCat: 'all',
+        vocabSearchQuery: '',
     };
 
     // Initialize Application
@@ -95,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupVoiceSynthesis();
         updateProviderUIFields();
         checkProtocol();
+        initVocabDatabaseWeb();
     }
 
     // Check if running on file:// protocol and show user warning
@@ -299,6 +316,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('已填入快速词包，点击串联记忆即可生成', 'info');
             });
         });
+
+        // Vocab Index Modal Event Listeners
+        if (elements.openVocabModalBtn) {
+            elements.openVocabModalBtn.addEventListener('click', openVocabModal);
+        }
+        if (elements.closeVocabModalBtn) {
+            elements.closeVocabModalBtn.addEventListener('click', closeVocabModal);
+        }
+        if (elements.vocabModal) {
+            elements.vocabModal.addEventListener('click', (e) => {
+                if (e.target === elements.vocabModal) closeVocabModal();
+            });
+        }
+        if (elements.vocabSearchInput) {
+            elements.vocabSearchInput.addEventListener('input', onVocabSearch);
+        }
+        if (elements.clearVocabSearchBtn) {
+            elements.clearVocabSearchBtn.addEventListener('click', () => {
+                elements.vocabSearchInput.value = '';
+                onVocabSearch();
+            });
+        }
+        if (elements.vocabRandomPickBtn) {
+            elements.vocabRandomPickBtn.addEventListener('click', randomPickVocab);
+        }
+        if (elements.vocabClearSelectedBtn) {
+            elements.vocabClearSelectedBtn.addEventListener('click', clearSelectedVocab);
+        }
+        if (elements.vocabApplyBtn) {
+            elements.vocabApplyBtn.addEventListener('click', applySelectedVocab);
+        }
 
         // Main generation trigger
         elements.generateBtn.addEventListener('click', handleGeneration);
@@ -1273,5 +1321,202 @@ JSON Schema 结构：
         elements.scanTabs.classList.remove('hidden');
         
         processImageOCR(croppedBase64, cropMime);
+    }
+
+    // ==========================================================================
+    // Vocab Database Index & Search Helper Functions
+    // ==========================================================================
+    const catNameMapWeb = {
+        gaokao: '高考',
+        cet4: '四级',
+        cet6: '六级',
+        kaoyan: '考研',
+        ielts: '雅思'
+    };
+
+    let allVocabListWeb = [];
+
+    function initVocabDatabaseWeb() {
+        if (!window.VOCAB_DATABASE) return;
+        allVocabListWeb = window.VOCAB_DATABASE.map(item => ({
+            ...item,
+            catName: catNameMapWeb[item.category] || '通用'
+        }));
+        renderVocabTabs();
+        renderVocabList();
+    }
+
+    function openVocabModal() {
+        if (!elements.vocabModal) return;
+        elements.vocabModal.classList.remove('hidden');
+        renderVocabList();
+    }
+
+    function closeVocabModal() {
+        if (!elements.vocabModal) return;
+        elements.vocabModal.classList.add('hidden');
+    }
+
+    function renderVocabTabs() {
+        if (!elements.vocabCatTabs) return;
+        const counts = {
+            all: allVocabListWeb.length,
+            gaokao: allVocabListWeb.filter(w => w.category === 'gaokao').length,
+            cet4: allVocabListWeb.filter(w => w.category === 'cet4').length,
+            cet6: allVocabListWeb.filter(w => w.category === 'cet6').length,
+            kaoyan: allVocabListWeb.filter(w => w.category === 'kaoyan').length,
+            ielts: allVocabListWeb.filter(w => w.category === 'ielts').length
+        };
+
+        const tabs = [
+            { id: 'all', name: '全部', count: counts.all },
+            { id: 'gaokao', name: '📘 高考', count: counts.gaokao },
+            { id: 'cet4', name: '🔥 四级', count: counts.cet4 },
+            { id: 'cet6', name: '🎓 六级', count: counts.cet6 },
+            { id: 'kaoyan', name: '📖 考研', count: counts.kaoyan },
+            { id: 'ielts', name: '✈️ 雅思', count: counts.ielts }
+        ];
+
+        elements.vocabCatTabs.innerHTML = tabs.map(tab => `
+            <button type="button" class="vocab-tab-btn ${state.selectedVocabCat === tab.id ? 'active' : ''}" data-cat="${tab.id}">
+                ${tab.name} (${tab.count})
+            </button>
+        `).join('');
+
+        elements.vocabCatTabs.querySelectorAll('.vocab-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.selectedVocabCat = btn.dataset.cat;
+                elements.vocabCatTabs.querySelectorAll('.vocab-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderVocabList();
+            });
+        });
+    }
+
+    function onVocabSearch() {
+        state.vocabSearchQuery = (elements.vocabSearchInput.value || '').trim();
+        if (state.vocabSearchQuery) {
+            elements.clearVocabSearchBtn.classList.remove('hidden');
+        } else {
+            elements.clearVocabSearchBtn.classList.add('hidden');
+        }
+        renderVocabList();
+    }
+
+    function renderVocabList() {
+        if (!elements.vocabListContainer) return;
+        const query = (state.vocabSearchQuery || '').toLowerCase();
+        let list = allVocabListWeb;
+
+        if (state.selectedVocabCat && state.selectedVocabCat !== 'all') {
+            list = list.filter(w => w.category === state.selectedVocabCat);
+        }
+
+        if (query) {
+            list = list.filter(w => w.word.toLowerCase().includes(query) || w.def.includes(query));
+        }
+
+        if (list.length === 0) {
+            elements.vocabListContainer.innerHTML = `
+                <div style="padding: 40px 0; text-align: center; color: var(--text-muted);">
+                    <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+                    <p>未找到匹配词汇，换个关键词试试吧~</p>
+                </div>
+            `;
+            return;
+        }
+
+        elements.vocabListContainer.innerHTML = list.map(item => {
+            const isSelected = !!state.selectedVocabMap[item.word];
+            return `
+                <div class="vocab-db-row ${isSelected ? 'selected' : ''}" data-word="${item.word}">
+                    <div class="vocab-row-left">
+                        <div class="vocab-word-title-row">
+                            <span class="vocab-word-name">${item.word}</span>
+                            <span class="vocab-word-pos">${item.pos}</span>
+                            <span class="vocab-word-ipa">${item.phonetic}</span>
+                        </div>
+                        <div class="vocab-word-def">${item.def}</div>
+                    </div>
+                    <div class="vocab-row-right">
+                        <span class="vocab-cat-tag">${item.catName}</span>
+                        <div class="vocab-check-circle">${isSelected ? '✓' : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        elements.vocabListContainer.querySelectorAll('.vocab-db-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const word = row.dataset.word;
+                toggleSelectVocab(word);
+            });
+        });
+
+        updateVocabSelectedUI();
+    }
+
+    function toggleSelectVocab(word) {
+        if (state.selectedVocabMap[word]) {
+            delete state.selectedVocabMap[word];
+        } else {
+            state.selectedVocabMap[word] = true;
+        }
+        renderVocabList();
+    }
+
+    function updateVocabSelectedUI() {
+        const count = Object.keys(state.selectedVocabMap).length;
+        if (count > 0) {
+            elements.vocabSelectedBadge.textContent = `已选 ${count} 词`;
+            elements.vocabSelectedBadge.classList.remove('hidden');
+            elements.vocabClearSelectedBtn.classList.remove('hidden');
+            elements.vocabApplyBtn.disabled = false;
+            elements.vocabApplyBtn.textContent = `填入到输入框 (${count})`;
+        } else {
+            elements.vocabSelectedBadge.classList.add('hidden');
+            elements.vocabClearSelectedBtn.classList.add('hidden');
+            elements.vocabApplyBtn.disabled = true;
+            elements.vocabApplyBtn.textContent = `填入到输入框 (0)`;
+        }
+    }
+
+    function randomPickVocab() {
+        const query = (state.vocabSearchQuery || '').toLowerCase();
+        let list = allVocabListWeb;
+        if (state.selectedVocabCat && state.selectedVocabCat !== 'all') {
+            list = list.filter(w => w.category === state.selectedVocabCat);
+        }
+        if (query) {
+            list = list.filter(w => w.word.toLowerCase().includes(query) || w.def.includes(query));
+        }
+
+        const pool = list.length >= 3 ? list : allVocabListWeb;
+        if (!pool || pool.length === 0) return;
+
+        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+        const picked = shuffled.slice(0, 3);
+
+        state.selectedVocabMap = {};
+        picked.forEach(item => {
+            state.selectedVocabMap[item.word] = true;
+        });
+
+        renderVocabList();
+        showToast(`已随机挑选 ${picked.length} 词`, 'info');
+    }
+
+    function clearSelectedVocab() {
+        state.selectedVocabMap = {};
+        renderVocabList();
+    }
+
+    function applySelectedVocab() {
+        const selected = Object.keys(state.selectedVocabMap);
+        if (selected.length === 0) return;
+        elements.wordsInput.value = selected.join(', ');
+        closeVocabModal();
+        showToast(`已填入 ${selected.length} 个单词`, 'success');
+        elements.wordsInput.focus();
     }
 });

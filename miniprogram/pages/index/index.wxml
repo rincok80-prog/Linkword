@@ -46,7 +46,12 @@
 
       <!-- Quick Demo Word Packs -->
       <view class="quick-packs-bar">
-        <text class="quick-label">⚡ 快速体验词包：</text>
+        <view class="quick-label-row">
+          <text class="quick-label">⚡ 快速体验词包：</text>
+          <view class="vocab-index-trigger" bindtap="openVocabIndex" hover-class="chip-hover">
+            <text>📚 全量词库与搜索索引 ›</text>
+          </view>
+        </view>
         <view class="quick-chips">
           <view wx:for="{{quickPacks}}" wx:key="label" class="quick-chip" data-words="{{item.words}}" bindtap="onSelectQuickPack" hover-class="chip-hover">
             <text>{{item.label}}</text>
@@ -226,6 +231,76 @@
         <view class="crop-footer-right">
           <view class="secondary-btn-sm" bindtap="cancelCropEditor">取消</view>
           <view class="primary-btn-submit" bindtap="confirmCropAndRunOCR">确认识别</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Vocab Database & Search Index Modal -->
+  <view class="vocab-modal-backdrop" wx:if="{{showVocabModal}}">
+    <view class="vocab-modal-card">
+      <view class="vocab-modal-header">
+        <view class="vocab-header-left">
+          <text class="vocab-modal-title">📚 官方分级词库索引</text>
+          <text class="vocab-modal-sub">含高考/四六级/考研/雅思核心词库 (共 {{allVocabList.length}} 词)</text>
+        </view>
+        <view class="close-modal-btn" bindtap="closeVocabIndex">✕</view>
+      </view>
+
+      <!-- Realtime Search Box -->
+      <view class="vocab-search-box">
+        <text class="search-lens-icon">🔍</text>
+        <input class="vocab-search-field" placeholder="搜索单词或中文 (例如: 怀旧 / pristine)..." placeholder-class="textarea-placeholder" value="{{vocabSearchQuery}}" bindinput="onVocabSearchInput" confirm-type="search" />
+        <view class="clear-search-btn" bindtap="clearVocabSearch" wx:if="{{vocabSearchQuery}}">✕</view>
+      </view>
+
+      <!-- Category Filter Tabs -->
+      <scroll-view class="vocab-cat-scroll" scroll-x="true" enable-flex="true">
+        <view wx:for="{{vocabCategories}}" wx:key="id" class="vocab-cat-tab {{selectedVocabCat === item.id ? 'active' : ''}}" data-cat="{{item.id}}" bindtap="onSelectVocabCat">
+          <text>{{item.name}}</text>
+          <text class="cat-count">({{item.count}})</text>
+        </view>
+      </scroll-view>
+
+      <!-- Word List Area -->
+      <scroll-view class="vocab-list-scroll" scroll-y="true">
+        <view class="vocab-items-grid" wx:if="{{filteredVocabList.length > 0}}">
+          <view wx:for="{{filteredVocabList}}" wx:key="word" class="vocab-db-card {{selectedVocabMap[item.word] ? 'selected' : ''}}" data-word="{{item.word}}" bindtap="toggleSelectVocabItem">
+            <view class="vocab-card-top">
+              <view class="vocab-word-info">
+                <text class="vocab-main-word">{{item.word}}</text>
+                <text class="vocab-pos-tag">{{item.pos}}</text>
+                <text class="vocab-ipa-text">{{item.phonetic}}</text>
+              </view>
+              <view class="select-checkbox {{selectedVocabMap[item.word] ? 'checked' : ''}}">
+                <text wx:if="{{selectedVocabMap[item.word]}}">✓</text>
+              </view>
+            </view>
+            <view class="vocab-card-bottom">
+              <text class="vocab-def-text">{{item.def}}</text>
+              <text class="vocab-cat-badge">{{item.catName}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="vocab-empty-box" wx:else>
+          <text class="empty-emoji">🔍</text>
+          <text>未找到匹配词汇，换个关键词搜搜看吧~</text>
+        </view>
+      </scroll-view>
+
+      <!-- Bottom Action Footer -->
+      <view class="vocab-modal-footer">
+        <view class="footer-left">
+          <view class="random-pick-btn" bindtap="randomPick3Words" hover-class="chip-hover">
+            <text>🎲 随机选3词</text>
+          </view>
+          <text class="selected-counter" wx:if="{{selectedVocabCount > 0}}">已选 {{selectedVocabCount}} 词</text>
+        </view>
+        <view class="footer-right">
+          <view class="text-btn-sm" bindtap="clearSelectedVocab" wx:if="{{selectedVocabCount > 0}}" style="margin-right: 12rpx;">清空</view>
+          <view class="primary-btn-submit {{selectedVocabCount === 0 ? 'disabled' : ''}}" bindtap="applySelectedVocab">
+            <text>一键填入 ({{selectedVocabCount}})</text>
+          </view>
         </view>
       </view>
     </view>
