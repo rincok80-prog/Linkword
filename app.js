@@ -1344,7 +1344,7 @@ JSON Schema 结构：
         if (query.length >= 1) {
             vocabSearchTimer = setTimeout(() => {
                 queryOnlineVocab(query);
-            }, 300);
+            }, 200);
         }
     }
 
@@ -1375,7 +1375,9 @@ JSON Schema 结构：
     function renderVocabList() {
         if (!elements.vocabListContainer) return;
         const query = (state.vocabSearchQuery || '').toLowerCase();
+        const rawQuery = (state.vocabSearchQuery || '').trim();
         const isChinese = /[\u4e00-\u9fa5]/.test(query);
+        const isEng = !isChinese && /^[a-zA-Z\s-]+$/.test(rawQuery) && rawQuery.length >= 1;
         let list = allVocabListWeb;
 
         if (query) {
@@ -1393,25 +1395,35 @@ JSON Schema 结构：
             if (onlineVocabResults && onlineVocabResults.length > 0) {
                 const existingWords = new Set(list.map(w => w.word.toLowerCase()));
                 const newOnline = onlineVocabResults.filter(w => !existingWords.has(w.word.toLowerCase()));
-                if (isChinese) {
-                    list = [...newOnline, ...list];
-                } else {
-                    list = [...list, ...newOnline];
-                }
+                list = [...newOnline, ...list];
             }
         }
 
-        if (list.length === 0) {
+        let directAddHtml = '';
+        if (isEng && rawQuery) {
+            const isDirectSelected = !!state.selectedVocabMap[rawQuery];
+            directAddHtml = `
+                <div class="vocab-direct-add-card" data-word="${rawQuery}">
+                    <div class="direct-add-left">
+                        <span class="direct-add-badge">✨ 快捷添加</span>
+                        <span class="direct-add-word">${rawQuery}</span>
+                    </div>
+                    <div class="vocab-check-circle ${isDirectSelected ? 'selected' : ''}">${isDirectSelected ? '✓' : ''}</div>
+                </div>
+            `;
+        }
+
+        if (list.length === 0 && !directAddHtml) {
             elements.vocabListContainer.innerHTML = `
                 <div style="padding: 40px 0; text-align: center; color: var(--text-muted);">
                     <div style="font-size: 32px; margin-bottom: 8px;">💡</div>
-                    <p>输入中文关键词（如“坚持”、“美好”）即可实时查找英文单词并勾选！</p>
+                    <p>输入任意英文单词或中文，全网词典实时检索并智能联想！</p>
                 </div>
             `;
             return;
         }
 
-        elements.vocabListContainer.innerHTML = list.map(item => {
+        const itemsHtml = list.map(item => {
             const isSelected = !!state.selectedVocabMap[item.word];
             return `
                 <div class="vocab-db-row ${isSelected ? 'selected' : ''}" data-word="${item.word}">
@@ -1431,7 +1443,9 @@ JSON Schema 结构：
             `;
         }).join('');
 
-        elements.vocabListContainer.querySelectorAll('.vocab-db-row').forEach(row => {
+        elements.vocabListContainer.innerHTML = directAddHtml + itemsHtml;
+
+        elements.vocabListContainer.querySelectorAll('.vocab-db-row, .vocab-direct-add-card').forEach(row => {
             row.addEventListener('click', () => {
                 const word = row.dataset.word;
                 toggleSelectVocab(word);

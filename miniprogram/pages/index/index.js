@@ -38,6 +38,8 @@ Page({
     favoritesList: [],
     showVocabModal: false,
     vocabSearchQuery: "",
+    cleanQueryWord: "",
+    isEnglishQuery: false,
     isSearchingOnline: false,
     selectedVocabMap: {},
     selectedVocabCount: 0,
@@ -132,26 +134,48 @@ Page({
 
   onVocabSearchInput(e) {
     const val = e.detail.value;
+    const isChinese = /[\u4e00-\u9fa5]/.test(val);
+    const cleanWord = val.trim();
+    const isEng = !isChinese && /^[a-zA-Z\s-]+$/.test(cleanWord) && cleanWord.length >= 1;
+
     this.setData({
-      vocabSearchQuery: val
+      vocabSearchQuery: val,
+      cleanQueryWord: isEng ? cleanWord : "",
+      isEnglishQuery: isEng
     });
     this.filterVocabList();
 
     if (this.vocabSearchTimer) clearTimeout(this.vocabSearchTimer);
-    const query = (val || '').trim();
+    const query = cleanWord;
     if (query.length >= 1) {
       this.vocabSearchTimer = setTimeout(() => {
         this.queryOnlineDict(query);
-      }, 300);
+      }, 200);
     } else {
       this.setData({ isSearchingOnline: false });
     }
+  },
+
+  onVocabSearchConfirm() {
+    const val = (this.data.vocabSearchQuery || '').trim();
+    if (val) {
+      if (this.vocabSearchTimer) clearTimeout(this.vocabSearchTimer);
+      this.queryOnlineDict(val);
+    }
+  },
+
+  toggleDirectAddWord(e) {
+    const word = e.currentTarget.dataset.word;
+    if (!word) return;
+    this.toggleSelectVocabItem({ currentTarget: { dataset: { word } } });
   },
 
   clearVocabSearch() {
     if (this.vocabSearchTimer) clearTimeout(this.vocabSearchTimer);
     this.setData({
       vocabSearchQuery: "",
+      cleanQueryWord: "",
+      isEnglishQuery: false,
       isSearchingOnline: false
     });
     this.filterVocabList();
@@ -210,17 +234,11 @@ Page({
             const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
             const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
 
-            if (isChinese) {
-              this.setData({
-                filteredVocabList: [...newWords, ...currentFiltered],
-                isSearchingOnline: false
-              });
-            } else {
-              this.setData({
-                filteredVocabList: [...currentFiltered, ...newWords],
-                isSearchingOnline: false
-              });
-            }
+            // Priority: Exact match or online results at the top
+            this.setData({
+              filteredVocabList: [...newWords, ...currentFiltered],
+              isSearchingOnline: false
+            });
           } else {
             this.setData({ isSearchingOnline: false });
           }

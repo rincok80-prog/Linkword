@@ -1487,6 +1487,44 @@ video {
     max-height: 380px;
 }
 
+.vocab-direct-add-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
+    border: 1.5px dashed #6366f1;
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.vocab-direct-add-card:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+    transform: translateY(-1px);
+}
+
+.direct-add-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.direct-add-badge {
+    font-size: 11px;
+    background: #6366f1;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.direct-add-word {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
 .vocab-db-row {
     background: var(--bg-card);
     border: 1.5px solid var(--border-color);

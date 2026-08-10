@@ -125,17 +125,41 @@ export async function onRequestGet(context) {
                 }
             }
             
-            // Fetch detailed phonetic if single word
-            if (/^[a-zA-Z-]+$/.test(q) && results.length > 0) {
+            // Fetch detailed phonetic or fallback for rare/uncommon words
+            if (/^[a-zA-Z\s-]+$/.test(q)) {
                 try {
-                    const detailUrl = `https://dict.youdao.com/jsonapi?q=${encodeURIComponent(q)}&dicts=%7B%22count%22%3A1%2C%22dicts%22%3A%5B%5B%22ec%22%5D%5D%7D`;
+                    const detailUrl = `https://dict.youdao.com/jsonapi?q=${encodeURIComponent(q)}&dicts=%7B%22count%22%3A1%2C%22dicts%22%3A%5B%5B%22ec%22%2C%22web_trans%22%5D%5D%7D`;
                     const detailResp = await fetch(detailUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
                     if (detailResp.ok) {
                         const detailData = await detailResp.json();
                         const ecWord = detailData?.ec?.word?.[0];
                         const phone = ecWord?.usphone || ecWord?.ukphone || ecWord?.phone || '';
-                        if (phone && results[0]) {
+                        
+                        if (phone && results.length > 0 && results[0]) {
                             results[0].phonetic = `/${phone}/`;
+                        }
+
+                        // If suggest returned nothing, build from ec or web_trans
+                        if (results.length === 0 && ecWord) {
+                            const trs = ecWord?.trs || [];
+                            let defs = [];
+                            for (const tr of trs) {
+                                for (const item of (tr?.tr || [])) {
+                                    for (const l of (item?.l?.i || [])) {
+                                        if (typeof l === 'string') defs.push(l);
+                                    }
+                                }
+                            }
+                            if (defs.length > 0) {
+                                results.push({
+                                    word: ecWord?.return_phrase || q,
+                                    pos: '释义',
+                                    def: defs.join('； '),
+                                    phonetic: phone ? `/${phone}/` : '',
+                                    source: 'online_full_dict',
+                                    isChineseQuery: false
+                                });
+                            }
                         }
                     }
                 } catch (e) {

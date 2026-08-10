@@ -228,15 +228,27 @@
       <!-- Realtime Search Box -->
       <view class="vocab-search-box">
         <text class="search-lens-icon">🔍</text>
-        <input class="vocab-search-field" placeholder="输入中文 (如: 放弃/怀旧) 或英文查词..." placeholder-class="textarea-placeholder" value="{{vocabSearchQuery}}" bindinput="onVocabSearchInput" confirm-type="search" focus="{{showVocabModal}}" />
+        <input class="vocab-search-field" placeholder="输入任意英文单词或中文 (如: ephemeral / 放弃)..." placeholder-class="textarea-placeholder" value="{{vocabSearchQuery}}" bindinput="onVocabSearchInput" bindconfirm="onVocabSearchConfirm" confirm-type="search" focus="{{showVocabModal}}" />
         <view class="clear-search-btn" bindtap="clearVocabSearch" wx:if="{{vocabSearchQuery}}">✕</view>
       </view>
 
       <!-- Candidate Word List Area -->
       <scroll-view class="vocab-list-scroll" scroll-y="true" enhanced="true" show-scrollbar="true" bounces="true">
         <view class="vocab-searching-indicator" wx:if="{{isSearchingOnline}}">
-          <text class="search-loading-text">🌐 正在查询英文候选词...</text>
+          <text class="search-loading-text">🌐 正在全网词典检索与联想中...</text>
         </view>
+
+        <!-- Direct Add Word Card (Ensures 100% of all words in existence can be added) -->
+        <view class="vocab-direct-add-card" wx:if="{{cleanQueryWord && isEnglishQuery}}" data-word="{{cleanQueryWord}}" bindtap="toggleDirectAddWord">
+          <view class="direct-add-left">
+            <text class="direct-add-badge">✨ 快捷添加</text>
+            <text class="direct-add-word">{{cleanQueryWord}}</text>
+          </view>
+          <view class="select-checkbox {{selectedVocabMap[cleanQueryWord] ? 'checked' : ''}}">
+            <text wx:if="{{selectedVocabMap[cleanQueryWord]}}">✓</text>
+          </view>
+        </view>
+
         <view class="vocab-items-grid" wx:if="{{filteredVocabList.length > 0}}">
           <view wx:for="{{filteredVocabList}}" wx:key="word" class="vocab-db-card {{selectedVocabMap[item.word] ? 'selected' : ''}}" data-word="{{item.word}}" bindtap="toggleSelectVocabItem">
             <view class="vocab-card-top">
@@ -255,9 +267,9 @@
             </view>
           </view>
         </view>
-        <view class="vocab-empty-box" wx:elif="{{!isSearchingOnline}}">
+        <view class="vocab-empty-box" wx:elif="{{!isSearchingOnline && !cleanQueryWord}}">
           <text class="empty-emoji">💡</text>
-          <text>输入中文关键词（如“坚持”、“美好”）即可实时查找英文单词并勾选！</text>
+          <text>输入任何英文单词或中文，全网词典实时检索并智能联想！</text>
         </view>
       </scroll-view>
 

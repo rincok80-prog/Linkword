@@ -1058,6 +1058,38 @@
   animation: pulse 1.5s infinite ease-in-out;
 }
 
+.vocab-direct-add-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border: 2rpx dashed #6366f1;
+  border-radius: 20rpx;
+  padding: 20rpx 26rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.direct-add-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.direct-add-badge {
+  font-size: 20rpx;
+  background: #6366f1;
+  color: #ffffff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-weight: 600;
+}
+
+.direct-add-word {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .vocab-items-grid {
   display: flex;
   flex-direction: column;
