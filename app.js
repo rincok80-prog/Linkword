@@ -1355,15 +1355,67 @@ JSON Schema 结构：
             const resp = await fetch(`/api/dict?q=${encodeURIComponent(query)}`);
             if (resp.ok) {
                 const data = await resp.json();
-                if (data && Array.isArray(data.results) && data.results.length > 0) {
-                    onlineVocabResults = data.results.map(item => ({
-                        word: item.word,
-                        phonetic: item.phonetic || '',
-                        pos: item.pos || (isChinese ? '翻译' : '释义'),
-                        def: item.def || query,
-                        catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
-                        isOnline: true
-                    }));
+                const onlineResults = [];
+
+                if (Array.isArray(data.results) && data.results.length > 0) {
+                    for (const item of data.results) {
+                        if (item && item.word) {
+                            onlineResults.push({
+                                word: item.word,
+                                phonetic: item.phonetic || '',
+                                pos: item.pos || (isChinese ? '对应英文' : '释义'),
+                                def: item.def || query,
+                                catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
+                                isOnline: true
+                            });
+                        }
+                    }
+                }
+
+                const entries = data?.data?.entries || data?.entries || [];
+                if (Array.isArray(entries) && entries.length > 0) {
+                    for (const item of entries) {
+                        const entry = item.entry || '';
+                        const explain = item.explain || '';
+                        if (isChinese) {
+                            const rawCands = explain.split(/[,;；，/、\n]/);
+                            for (const cand of rawCands) {
+                                const cleanW = cand.replace(/[^a-zA-Z\s-]/g, '').trim();
+                                if (cleanW && cleanW.length > 1 && !onlineResults.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
+                                    onlineResults.push({
+                                        word: cleanW,
+                                        phonetic: '',
+                                        pos: '对应英文',
+                                        def: entry || query,
+                                        catName: '🌐 实时翻译',
+                                        isOnline: true
+                                    });
+                                }
+                            }
+                        } else {
+                            if (entry && !onlineResults.some(r => r.word.toLowerCase() === entry.toLowerCase())) {
+                                let pos = '释义';
+                                let defText = explain;
+                                const posMatch = explain.match(/^([a-z]+\.)\s*(.+)$/i);
+                                if (posMatch) {
+                                    pos = posMatch[1];
+                                    defText = posMatch[2];
+                                }
+                                onlineResults.push({
+                                    word: entry,
+                                    phonetic: '',
+                                    pos: pos,
+                                    def: defText,
+                                    catName: '📖 词典释义',
+                                    isOnline: true
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if (onlineResults.length > 0) {
+                    onlineVocabResults = onlineResults;
                     renderVocabList();
                 }
             }

@@ -195,7 +195,12 @@ Page({
       return;
     }
 
+    const isChinese = /[\u4e00-\u9fa5]/.test(query);
+
     const filtered = allVocabPool.filter(item => {
+      if (isChinese) {
+        return item.def && item.def.includes(query);
+      }
       return item.word.toLowerCase().includes(query) || (item.def && item.def.includes(query));
     });
 
@@ -221,16 +226,69 @@ Page({
     wx.request({
       url: `https://linkword.pages.dev/api/dict?q=${encodeURIComponent(query)}`,
       method: 'GET',
+      timeout: 5000,
       success: (res) => {
-        if (res.statusCode === 200 && res.data && Array.isArray(res.data.results)) {
-          const onlineResults = res.data.results.map(item => ({
-            word: item.word,
-            phonetic: item.phonetic || '',
-            pos: item.pos || (isChinese ? '翻译' : '释义'),
-            def: item.def || query,
-            catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
-            isOnline: true
-          }));
+        if (res.statusCode === 200 && res.data) {
+          const onlineResults = [];
+
+          // 1. Check for structured results array
+          if (Array.isArray(res.data.results) && res.data.results.length > 0) {
+            for (const item of res.data.results) {
+              if (item && item.word) {
+                onlineResults.push({
+                  word: item.word,
+                  phonetic: item.phonetic || '',
+                  pos: item.pos || (isChinese ? '对应英文' : '释义'),
+                  def: item.def || query,
+                  catName: item.pos === '实时整句/短语翻译' ? '🌟 实时翻译' : (isChinese ? '🌐 中译英' : '📖 词典释义'),
+                  isOnline: true
+                });
+              }
+            }
+          }
+
+          // 2. Check for Youdao entries array format
+          const entries = res.data?.data?.entries || res.data?.entries || [];
+          if (Array.isArray(entries) && entries.length > 0) {
+            for (const item of entries) {
+              const entry = item.entry || '';
+              const explain = item.explain || '';
+              if (isChinese) {
+                const rawCands = explain.split(/[,;；，/、\n]/);
+                for (const cand of rawCands) {
+                  const cleanW = cand.replace(/[^a-zA-Z\s-]/g, '').trim();
+                  if (cleanW && cleanW.length > 1 && !onlineResults.some(r => r.word.toLowerCase() === cleanW.toLowerCase())) {
+                    onlineResults.push({
+                      word: cleanW,
+                      phonetic: '',
+                      pos: '对应英文',
+                      def: entry || query,
+                      catName: '🌐 实时翻译',
+                      isOnline: true
+                    });
+                  }
+                }
+              } else {
+                if (entry && !onlineResults.some(r => r.word.toLowerCase() === entry.toLowerCase())) {
+                  let pos = '释义';
+                  let defText = explain;
+                  const posMatch = explain.match(/^([a-z]+\.)\s*(.+)$/i);
+                  if (posMatch) {
+                    pos = posMatch[1];
+                    defText = posMatch[2];
+                  }
+                  onlineResults.push({
+                    word: entry,
+                    phonetic: '',
+                    pos: pos,
+                    def: defText,
+                    catName: '📖 词典释义',
+                    isOnline: true
+                  });
+                }
+              }
+            }
+          }
 
           if (onlineResults.length > 0) {
             const currentFiltered = [...this.data.filteredVocabList];
