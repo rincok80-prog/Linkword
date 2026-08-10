@@ -32,7 +32,20 @@ Page({
     imageDisplayWidth: 300,
     imageDisplayHeight: 400,
     showFavorites: false,
-    favoritesList: []
+    favoritesList: [],
+    selectedStyle: 'humorous',
+    styleOptions: [
+      { id: 'humorous', name: '幽默爆笑', icon: '😆' },
+      { id: 'scifi', name: '科幻冒险', icon: '🚀' },
+      { id: 'mystery', name: '悬疑推理', icon: '🕵️' },
+      { id: 'warm', name: '治愈童话', icon: '🌸' }
+    ],
+    quickPacks: [
+      { label: '🔥 四六级核心', words: 'nostalgia, obsolete, pristine' },
+      { label: '🎓 考研必背', words: 'aesthetic, coherent, dilemma' },
+      { label: '📘 高考必备', words: 'flexible, genuine, hazard' },
+      { label: '✈️ 雅思进阶', words: 'subtle, vulnerable, ambiguous' }
+    ]
   },
 
   onLoad() {
@@ -84,6 +97,27 @@ Page({
       wordsInputValue: "",
       showEmptyState: true,
       showOutput: false
+    });
+  },
+
+  // Select story narrative tone style
+  onSelectStyle(e) {
+    const style = e.currentTarget.dataset.style;
+    this.setData({
+      selectedStyle: style
+    });
+  },
+
+  // Select pre-curated demo word pack
+  onSelectQuickPack(e) {
+    const words = e.currentTarget.dataset.words;
+    this.setData({
+      wordsInputValue: words
+    });
+    wx.showToast({
+      title: '已填入，点击串联记忆',
+      icon: 'none',
+      duration: 1500
     });
   },
 
@@ -532,7 +566,8 @@ Page({
         'content-type': 'application/json'
       },
       data: {
-        words: words
+        words: words,
+        style: this.data.selectedStyle
       },
       success: (res) => {
         this.stopLoadingTips();

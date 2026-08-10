@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>LinkWord趣记单词 - 2026微信小程序开发大赛参赛说明文档</title>
+<style>
+    @page {
+        size: A4;
+        margin: 20mm 18mm 20mm 18mm;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Heiti SC", sans-serif;
+        color: #2D3748;
+        line-height: 1.65;
+        font-size: 11pt;
+        margin: 0;
+        padding: 0;
+    }
+    .header {
+        border-bottom: 2px solid #4F46E5;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+    .title {
+        font-size: 20pt;
+        font-weight: bold;
+        color: #1E1B4B;
+        margin: 0 0 8px 0;
+    }
+    .subtitle {
+        font-size: 13pt;
+        color: #4F46E5;
+        font-weight: 600;
+        margin: 0 0 12px 0;
+    }
+    .meta-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        font-size: 9.5pt;
+        color: #64748B;
+        background: #F8FAFC;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+    }
+    .meta-item {
+        display: inline-block;
+        margin-right: 15px;
+    }
+    .meta-item strong {
+        color: #334155;
+    }
+    h2 {
+        font-size: 13pt;
+        color: #1E293B;
+        border-left: 4px solid #4F46E5;
+        padding-left: 10px;
+        margin-top: 24px;
+        margin-bottom: 12px;
+    }
+    h3 {
+        font-size: 11.5pt;
+        color: #334155;
+        margin-top: 16px;
+        margin-bottom: 8px;
+    }
+    p {
+        margin: 0 0 10px 0;
+        text-align: justify;
+    }
+    .card {
+        background: #F8FAFC;
+        border-left: 3px solid #6366F1;
+        padding: 12px 14px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 14px;
+    }
+    .card-title {
+        font-weight: bold;
+        color: #312E81;
+        margin-bottom: 4px;
+    }
+    ul, ol {
+        margin: 0 0 12px 0;
+        padding-left: 20px;
+    }
+    li {
+        margin-bottom: 6px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 14px 0;
+        font-size: 10pt;
+    }
+    th, td {
+        border: 1px solid #E2E8F0;
+        padding: 8px 12px;
+        text-align: left;
+    }
+    th {
+        background: #EEF2FF;
+        color: #312E81;
+        font-weight: 600;
+    }
+    .highlight {
+        color: #4F46E5;
+        font-weight: bold;
+    }
+    .tag {
+        display: inline-block;
+        background: #E0E7FF;
+        color: #3730A3;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 8.5pt;
+        font-weight: bold;
+        margin-right: 4px;
+    }
+    .footer {
+        margin-top: 30px;
+        border-top: 1px solid #E2E8F0;
+        padding-top: 10px;
+        font-size: 8.5pt;
+        color: #94A3B8;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="title">《LinkWord趣记单词》项目参赛说明文档</div>
+    <div class="subtitle">2026微信小程序开发大赛「与AI共生」赛道作品</div>
+    <div class="meta-bar">
+        <div class="meta-item"><strong>作品名称：</strong>LinkWord趣记单词</div>
+        <div class="meta-item"><strong>参赛赛区：</strong>中国南部赛区</div>
+        <div class="meta-item"><strong>小程序 AppID：</strong>wxb74d966cca31a947</div>
+        <div class="meta-item"><strong>AI 引擎：</strong>微信官方 Coding Plan (Deepseek-v4-flash)</div>
+    </div>
+</div>
+
+<h2>一、 项目背景与痛点分析</h2>
+<p>在日常英语词汇记忆过程中，无论是在校中学生、四六级备考大学生，还是考研深造人群，普遍面临着两大核心学习痛点：</p>
+<ul>
+    <li><strong>孤立记忆遗忘率高（死记硬背）</strong>：脱离具体语境与生活故事的单词记忆枯燥且浅层，记忆留存周期短，极易陷入“背了前面忘后面”的恶性循环。</li>
+    <li><strong>纸质试卷/课本生词录入繁琐</strong>：学生在阅读英文试卷或课外材料时，遇到分散的多处生词，手动打字逐个查询极度打断学习心流，耗时费力。</li>
+</ul>
+<p>为解决上述痛点，<strong>《LinkWord趣记单词》</strong>应运而生。本项目紧密围绕大赛<strong>「与AI共生」</strong>主题，将腾讯微信官方原生大模型算力与多模态交互技术深度融合，创造了一种全新的“情境化联想”与“沉浸式涂抹识词”的智能学习体验。</p>
+
+<h2>二、 核心功能与产品创新</h2>
+
+<div class="card">
+    <div class="card-title">💡 创新一：AI 联想情境故事串记（1秒生成微情境）</div>
+    <p>用户输入任意 2~5 个英语生词，小程序调用微信官方 <strong>Deepseek-v4-flash</strong> 顶级大模型，在 1 秒内自动编写出一段控制在 3 句话以内、通俗易懂且极具画面感的趣味微故事，并将目标单词巧妙嵌入故事中加粗展示。配合中文对照与考点解析，实现“看一遍趣味故事，牢记一组生词”。</p>
+</div>
+
+<div class="card">
+    <div class="card-title">📸 创新二：全屏自由涂抹与多区域框选 OCR（多模态视觉交互）</div>
+    <p>针对纸质资料查词痛点，开发了沉浸式全屏画板：</p>
+    <ul>
+        <li><strong>自由涂抹模式</strong>：提供 8px / 18px / 32px 三档荧光画笔，手指在课本生词上一抹，即可精准提取高亮单词。</li>
+        <li><strong>多区域框选模式</strong>：支持在试卷上连续拉出多个选框，一键合并多分散区域，精准过滤杂质文字，秒级提取纯净英语单词列表并一键串联。</li>
+    </ul>
+</div>
+
+<div class="card">
+    <div class="card-title">⭐ 创新三：沉浸式生词本、原生语音与社交分享</div>
+    <p>提供“一键点亮星标”本地离线生词本抽屉，支持随时复习；集成纯正真人发音与单词音标拆解；支持微信原生卡片转发与朋友圈分享，激发学习社交互动。</p>
+</div>
+
+<div class="card">
+    <div class="card-title">🎭 创新四：故事风格个性化切换与一键体验词包</div>
+    <p>支持<strong>幽默爆笑、科幻冒险、悬疑推理、治愈童话</strong>四大叙事风格一键切换，展现了精细化大模型 Prompt 提示词工程的风格可控性；内置高考、四六级、考研、雅思核心热词包，零门槛一触即发。</p>
+</div>
+
+<h2>三、 系统技术架构与工程实现</h2>
+
+<table>
+    <tr>
+        <th style="width: 25%;">架构层级</th>
+        <th style="width: 35%;">核心技术栈</th>
+        <th style="width: 40%;">功能与实现亮点</th>
+    </tr>
+    <tr>
+        <td><strong>前端交互层</strong></td>
+        <td>微信小程序原生框架 / Canvas 2D / WXML / WXSS</td>
+        <td>Canvas 2D 离屏像素矩阵缩放算法；全机型动态安全区与胶囊栏适配；极简美观无广告 UI。</td>
+    </tr>
+    <tr>
+        <td><strong>AI 与大模型层</strong></td>
+        <td>微信官方 Coding Plan / Deepseek-v4-flash / OpenAI 协议</td>
+        <td>国内官方机房直连，响应延迟 &lt; 1 秒；结构化 JSON 提示词工程（Prompt Engineering）与防幻觉约束。</td>
+    </tr>
+    <tr>
+        <td><strong>后端与容灾层</strong></td>
+        <td>Serverless 边缘函数 / 双引擎容灾路由</td>
+        <td>以微信官方 AI 为第一主引擎，智能熔断与自动降级保障 24 小时 100% 高可用。</td>
+    </tr>
+</table>
+
+<h2>四、 社会价值与落地前景</h2>
+<p><strong>《LinkWord趣记单词》</strong>倡导<strong>“轻量、纯粹、普惠”</strong>的产品理念，全功能免登录、零门槛、无任何商业广告骚扰。作品充分展示了微信小程序在大模型时代连接用户、赋能学习的核心价值，让每一位学习者都能真切体会到“与 AI 共生”带来的高效与乐趣。</p>
+
+<div class="footer">
+    LinkWord趣记单词 · 2026 微信小程序开发大赛参赛材料 · 提交时间：2026年8月
+</div>
+
+</body>
+</html>

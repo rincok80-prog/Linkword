@@ -32,6 +32,28 @@
       <view class="textarea-wrapper">
         <textarea id="words-input" class="words-textarea" placeholder="例如: pristine, obsolete, digital..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
       </view>
+
+      <!-- Story Style Selector -->
+      <view class="style-selector-bar">
+        <text class="style-label">🎭 故事风格：</text>
+        <scroll-view class="style-scroll" scroll-x="true" enable-flex="true">
+          <view wx:for="{{styleOptions}}" wx:key="id" class="style-tag {{selectedStyle === item.id ? 'active' : ''}}" data-style="{{item.id}}" bindtap="onSelectStyle">
+            <text class="style-icon">{{item.icon}}</text>
+            <text>{{item.name}}</text>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- Quick Demo Word Packs -->
+      <view class="quick-packs-bar">
+        <text class="quick-label">⚡ 快速体验词包：</text>
+        <view class="quick-chips">
+          <view wx:for="{{quickPacks}}" wx:key="label" class="quick-chip" data-words="{{item.words}}" bindtap="onSelectQuickPack" hover-class="chip-hover">
+            <text>{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+
       <view class="input-actions">
         <view class="action-left">
           <view class="action-btn secondary-btn-sm" bindtap="startOCR">

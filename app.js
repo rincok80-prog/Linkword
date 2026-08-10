@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stream: null,
         selectedImageBase64: null,
         selectedImageMime: null,
+        selectedStyle: 'humorous'
     };
 
     // Initialize Application
@@ -279,6 +280,23 @@ document.addEventListener('DOMContentLoaded', () => {
             tag.addEventListener('click', () => {
                 elements.wordsInput.value = tag.textContent;
                 elements.wordsInput.focus();
+            });
+        });
+
+        // Story Style Selection
+        document.querySelectorAll('.style-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.selectedStyle = btn.dataset.style;
+            });
+        });
+
+        // Quick Demo Word Packs Click
+        document.querySelectorAll('.quick-chip-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                elements.wordsInput.value = btn.dataset.words;
+                showToast('已填入快速词包，点击串联记忆即可生成', 'info');
             });
         });
 
@@ -563,7 +581,10 @@ document.addEventListener('DOMContentLoaded', () => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ words: words })
+            body: JSON.stringify({
+                words: words,
+                style: state.selectedStyle || 'humorous'
+            })
         });
         
         if (!response.ok) {

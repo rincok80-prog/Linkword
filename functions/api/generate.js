@@ -41,8 +41,18 @@ export async function onRequestPost(context) {
             });
         }
         
+        const style = reqData.style || 'humorous';
+        let styleDesc = "幽默搞笑、情节反转出人意料，让人忍俊不禁";
+        if (style === 'scifi') {
+            styleDesc = "未来科幻冒险、充满想象力与奇幻探索感";
+        } else if (style === 'mystery') {
+            styleDesc = "微悬疑推理、福尔摩斯侦探解谜与线索反转";
+        } else if (style === 'warm') {
+            styleDesc = "温馨治愈、温暖日常与充满治愈正能量";
+        }
+
         const prompt = `您是英语教学与联想记忆专家。请使用以下单词：[${words.join(', ')}]。
-请用通俗易懂的初中词汇创作一段极简（不超过3句话）、生动有趣的英语小故事，帮助学生快速联想并牢记这几个单词。
+请以【${styleDesc}】的风格，用通俗易懂的初中词汇创作一段极简（不超过3句话）、生动有趣的英语小故事，帮助学生快速联想并牢记这几个单词。
 
 请严格以无任何额外文字、无 markdown 包裹的纯 JSON 格式返回：
 {
@@ -60,7 +70,7 @@ export async function onRequestPost(context) {
 }
 
 注意：
-1. 故事必须生动有趣、逻辑通顺，所有英文句子和例句必须非常简单易懂。
+1. 故事必须生动有趣、紧扣【${styleDesc}】风格、逻辑通顺，所有英文句子和例句必须非常简单易懂。
 2. 为了防止 JSON 解析失败，故事或例句中如需使用引号，请使用单引号（'），绝对不要在 JSON 属性值内直接使用未转义的双引号（"）。`;
 
         // 1. Primary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
