@@ -57,6 +57,7 @@ Page({
     ],
     showVocabModal: false,
     vocabSearchQuery: "",
+    isSearchingOnline: false,
     selectedVocabCat: "all",
     selectedVocabMap: {},
     selectedVocabCount: 0,
@@ -71,6 +72,8 @@ Page({
       { id: 'ielts', name: '✈️ 雅思', count: 0 }
     ]
   },
+
+  searchTimer: null,
 
   onLoad() {
     this.loadHistory();
@@ -194,17 +197,80 @@ Page({
   },
 
   onVocabSearchInput(e) {
+    const val = e.detail.value;
     this.setData({
-      vocabSearchQuery: e.detail.value
+      vocabSearchQuery: val
+    });
+    this.filterVocabList();
+
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    const query = (val || '').trim();
+    if (query.length >= 1) {
+      this.searchTimer = setTimeout(() => {
+        this.queryOnlineDict(query);
+      }, 350);
+    } else {
+      this.setData({ isSearchingOnline: false });
+    }
+  },
+
+  clearVocabSearch() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.setData({
+      vocabSearchQuery: "",
+      isSearchingOnline: false
     });
     this.filterVocabList();
   },
 
-  clearVocabSearch() {
-    this.setData({
-      vocabSearchQuery: ""
+  queryOnlineDict(query) {
+    if (!query) return;
+    const isChinese = /[\u4e00-\u9fa5]/.test(query);
+    this.setData({ isSearchingOnline: true });
+
+    wx.request({
+      url: `https://linkword.pages.dev/api/dict?q=${encodeURIComponent(query)}`,
+      method: 'GET',
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && Array.isArray(res.data.results)) {
+          const onlineResults = res.data.results.map(item => ({
+            word: item.word,
+            phonetic: item.phonetic || '',
+            pos: item.pos || '释义',
+            def: item.def,
+            category: 'online',
+            catName: isChinese ? '🌐 在线翻译' : '🌐 词典直查',
+            freq: 1,
+            isOnline: true
+          }));
+
+          if (onlineResults.length > 0) {
+            const currentFiltered = [...this.data.filteredVocabList];
+            const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
+            const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+
+            if (isChinese) {
+              this.setData({
+                filteredVocabList: [...newWords, ...currentFiltered],
+                isSearchingOnline: false
+              });
+            } else {
+              this.setData({
+                filteredVocabList: [...currentFiltered, ...newWords],
+                isSearchingOnline: false
+              });
+            }
+          } else {
+            this.setData({ isSearchingOnline: false });
+          }
+        } else {
+          this.setData({ isSearchingOnline: false });
+        }
+      },
+      fail: () => {
+        this.setData({ isSearchingOnline: false });
+      }
     });
-    this.filterVocabList();
   },
 
   onSelectVocabCat(e) {

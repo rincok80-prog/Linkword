@@ -241,16 +241,16 @@
     <view class="vocab-modal-card">
       <view class="vocab-modal-header">
         <view class="vocab-header-left">
-          <text class="vocab-modal-title">📚 官方分级词库索引</text>
-          <text class="vocab-modal-sub">含高考/四六级/考研/雅思核心词库 (共 {{allVocabList.length}} 词)</text>
+          <text class="vocab-modal-title">🌐 智能查词/翻译与官方词库</text>
+          <text class="vocab-modal-sub">支持中英双向翻译、实时查词与 1600+ 真题核心库</text>
         </view>
         <view class="close-modal-btn" bindtap="closeVocabIndex">✕</view>
       </view>
 
-      <!-- Realtime Search Box -->
+      <!-- Realtime Search & Translation Box -->
       <view class="vocab-search-box">
         <text class="search-lens-icon">🔍</text>
-        <input class="vocab-search-field" placeholder="搜索单词或中文 (例如: 怀旧 / pristine)..." placeholder-class="textarea-placeholder" value="{{vocabSearchQuery}}" bindinput="onVocabSearchInput" confirm-type="search" />
+        <input class="vocab-search-field" placeholder="输入英文查词，或输入中文翻译为英文..." placeholder-class="textarea-placeholder" value="{{vocabSearchQuery}}" bindinput="onVocabSearchInput" confirm-type="search" />
         <view class="clear-search-btn" bindtap="clearVocabSearch" wx:if="{{vocabSearchQuery}}">✕</view>
       </view>
 
@@ -262,15 +262,18 @@
         </view>
       </scroll-view>
 
-      <!-- Word List Area -->
+      <!-- Word & Translation List Area -->
       <scroll-view class="vocab-list-scroll" scroll-y="true" enhanced="true" show-scrollbar="true" bounces="true">
+        <view class="vocab-searching-indicator" wx:if="{{isSearchingOnline}}">
+          <text class="search-loading-text">🌐 正在联网翻译检索中...</text>
+        </view>
         <view class="vocab-items-grid" wx:if="{{filteredVocabList.length > 0}}">
           <view wx:for="{{filteredVocabList}}" wx:key="word" class="vocab-db-card {{selectedVocabMap[item.word] ? 'selected' : ''}}" data-word="{{item.word}}" bindtap="toggleSelectVocabItem">
             <view class="vocab-card-top">
               <view class="vocab-word-info">
                 <text class="vocab-main-word">{{item.word}}</text>
                 <text class="vocab-pos-tag">{{item.pos}}</text>
-                <text class="vocab-ipa-text">{{item.phonetic}}</text>
+                <text class="vocab-ipa-text" wx:if="{{item.phonetic}}">{{item.phonetic}}</text>
               </view>
               <view class="select-checkbox {{selectedVocabMap[item.word] ? 'checked' : ''}}">
                 <text wx:if="{{selectedVocabMap[item.word]}}">✓</text>
@@ -278,13 +281,13 @@
             </view>
             <view class="vocab-card-bottom">
               <text class="vocab-def-text">{{item.def}}</text>
-              <text class="vocab-cat-badge">{{item.catName}}</text>
+              <text class="vocab-cat-badge {{item.isOnline ? 'online-badge' : ''}}">{{item.catName}}</text>
             </view>
           </view>
         </view>
-        <view class="vocab-empty-box" wx:else>
+        <view class="vocab-empty-box" wx:elif="{{!isSearchingOnline}}">
           <text class="empty-emoji">🔍</text>
-          <text>未找到匹配词汇，换个关键词搜搜看吧~</text>
+          <text>未找到匹配词汇，换个关键词或中文试试吧~</text>
         </view>
       </scroll-view>
 
@@ -305,5 +308,4 @@
       </view>
     </view>
   </view>
-
 </view>

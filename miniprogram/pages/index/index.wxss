@@ -1275,6 +1275,24 @@
   font-weight: 500;
 }
 
+.vocab-cat-badge.online-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1rpx solid rgba(16, 185, 129, 0.25);
+}
+
+.vocab-searching-indicator {
+  padding: 12rpx 0 20rpx;
+  text-align: center;
+}
+
+.search-loading-text {
+  font-size: 22rpx;
+  color: #6366f1;
+  font-weight: 500;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
 .vocab-empty-box {
   padding: 80rpx 0;
   text-align: center;

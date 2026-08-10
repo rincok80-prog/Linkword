@@ -317,9 +317,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Vocab Index Modal Event Listeners
+        // Vocab Index & Translator Modal Event Listeners
         if (elements.openVocabModalBtn) {
             elements.openVocabModalBtn.addEventListener('click', openVocabModal);
+        }
+        const openTransBtn = document.getElementById('open-translator-btn');
+        if (openTransBtn) {
+            openTransBtn.addEventListener('click', () => {
+                openVocabModal();
+                if (elements.vocabSearchInput) {
+                    setTimeout(() => elements.vocabSearchInput.focus(), 100);
+                }
+            });
         }
         if (elements.closeVocabModalBtn) {
             elements.closeVocabModalBtn.addEventListener('click', closeVocabModal);
@@ -1393,19 +1402,58 @@ JSON Schema 结构：
         });
     }
 
+    let vocabSearchTimer = null;
+    let onlineVocabResults = [];
+
     function onVocabSearch() {
         state.vocabSearchQuery = (elements.vocabSearchInput.value || '').trim();
         if (state.vocabSearchQuery) {
             elements.clearVocabSearchBtn.classList.remove('hidden');
         } else {
             elements.clearVocabSearchBtn.classList.add('hidden');
+            onlineVocabResults = [];
         }
         renderVocabList();
+
+        if (vocabSearchTimer) clearTimeout(vocabSearchTimer);
+        const query = state.vocabSearchQuery;
+        if (query.length >= 1) {
+            vocabSearchTimer = setTimeout(() => {
+                queryOnlineVocab(query);
+            }, 350);
+        }
+    }
+
+    async function queryOnlineVocab(query) {
+        if (!query) return;
+        const isChinese = /[\u4e00-\u9fa5]/.test(query);
+        try {
+            const resp = await fetch(`/api/dict?q=${encodeURIComponent(query)}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && Array.isArray(data.results) && data.results.length > 0) {
+                    onlineVocabResults = data.results.map(item => ({
+                        word: item.word,
+                        phonetic: item.phonetic || '',
+                        pos: item.pos || '释义',
+                        def: item.def,
+                        category: 'online',
+                        catName: isChinese ? '🌐 在线翻译' : '🌐 词典直查',
+                        freq: 1,
+                        isOnline: true
+                    }));
+                    renderVocabList();
+                }
+            }
+        } catch(e) {
+            // Ignore online error
+        }
     }
 
     function renderVocabList() {
         if (!elements.vocabListContainer) return;
         const query = (state.vocabSearchQuery || '').toLowerCase();
+        const isChinese = /[\u4e00-\u9fa5]/.test(query);
         let list = allVocabListWeb;
 
         if (state.selectedVocabCat && state.selectedVocabCat !== 'all') {
@@ -1425,6 +1473,16 @@ JSON Schema 结构：
                 if (a.freq !== b.freq) return (a.freq || 1) - (b.freq || 1);
                 return aWord.localeCompare(bWord);
             });
+
+            if (onlineVocabResults && onlineVocabResults.length > 0) {
+                const existingWords = new Set(list.map(w => w.word.toLowerCase()));
+                const newOnline = onlineVocabResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+                if (isChinese) {
+                    list = [...newOnline, ...list];
+                } else {
+                    list = [...list, ...newOnline];
+                }
+            }
         }
 
         if (list.length === 0) {
