@@ -2,6 +2,8 @@
 const app = getApp();
 const { VOCAB_DATABASE } = require('../../utils/vocab_db.js');
 
+let allVocabPool = [];
+
 const loadingTips = [
   "正在用英文构思引人入胜的故事情节...",
   "正在翻阅字典寻找最准确的音标解释...",
@@ -43,7 +45,6 @@ Page({
     isSearchingOnline: false,
     selectedVocabMap: {},
     selectedVocabCount: 0,
-    allVocabList: [],
     filteredVocabList: []
   },
 
@@ -102,21 +103,24 @@ Page({
     });
   },
 
+  // Empty handler for catchtap
+  doNothing() {},
+
   // ==========================================================================
   // Word Index & Chinese Selection Methods
   // ==========================================================================
   initVocabList() {
-    const list = (VOCAB_DATABASE || []).map(item => ({
-      word: item.word,
-      phonetic: item.phonetic || '',
-      pos: item.pos || '',
-      def: item.def || '',
-      catName: '核心词'
-    }));
-    this.setData({
-      allVocabList: list,
-      filteredVocabList: list
-    });
+    try {
+      allVocabPool = (VOCAB_DATABASE || []).map(item => ({
+        word: item.word,
+        phonetic: item.phonetic || '',
+        pos: item.pos || '',
+        def: item.def || '',
+        catName: '核心词'
+      }));
+    } catch (e) {
+      allVocabPool = [];
+    }
   },
 
   openVocabIndex() {
@@ -182,17 +186,16 @@ Page({
   },
 
   filterVocabList() {
-    const { allVocabList, vocabSearchQuery } = this.data;
-    const query = (vocabSearchQuery || '').trim().toLowerCase();
+    const query = (this.data.vocabSearchQuery || '').trim().toLowerCase();
 
     if (!query) {
       this.setData({
-        filteredVocabList: allVocabList
+        filteredVocabList: allVocabPool.slice(0, 30)
       });
       return;
     }
 
-    const filtered = allVocabList.filter(item => {
+    const filtered = allVocabPool.filter(item => {
       return item.word.toLowerCase().includes(query) || (item.def && item.def.includes(query));
     });
 
@@ -206,7 +209,7 @@ Page({
     });
 
     this.setData({
-      filteredVocabList: filtered
+      filteredVocabList: filtered.slice(0, 30)
     });
   },
 
@@ -234,9 +237,10 @@ Page({
             const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
             const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
 
-            // Place real-time translations and lexical candidates at the very top
+            // Place real-time translations and lexical candidates at the very top, cap at 35
+            const merged = [...newWords, ...currentFiltered].slice(0, 35);
             this.setData({
-              filteredVocabList: [...newWords, ...currentFiltered],
+              filteredVocabList: merged,
               isSearchingOnline: false
             });
           } else {

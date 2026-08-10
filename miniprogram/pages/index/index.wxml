@@ -11,8 +11,11 @@
       </view>
     </view>
     <view class="header-actions">
-      <view class="icon-btn" bindtap="toggleFavorites" hover-class="btn-hover" style="margin-right: 20rpx;">
+      <view class="icon-btn" bindtap="openVocabIndex" hover-class="btn-hover" style="margin-right: 16rpx;">
         <text class="emoji-icon">📖</text>
+      </view>
+      <view class="icon-btn" bindtap="toggleFavorites" hover-class="btn-hover" style="margin-right: 16rpx;">
+        <text class="emoji-icon">⭐</text>
       </view>
       <view class="icon-btn" bindtap="toggleHistory" hover-class="btn-hover">
         <text class="emoji-icon">🕒</text>
@@ -215,8 +218,8 @@
   </view>
 
   <!-- Word Index & Chinese Selector Modal -->
-  <view class="vocab-modal-backdrop" wx:if="{{showVocabModal}}">
-    <view class="vocab-modal-card">
+  <view class="vocab-modal-backdrop" wx:if="{{showVocabModal}}" bindtap="closeVocabIndex">
+    <view class="vocab-modal-card" catchtap="doNothing">
       <view class="vocab-modal-header">
         <view class="vocab-header-left">
           <text class="vocab-modal-title">📖 单词索引 (支持中文选词)</text>
