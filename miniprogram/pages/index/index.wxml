@@ -36,7 +36,7 @@
       <!-- Story Style Selector -->
       <view class="style-selector-bar">
         <text class="style-label">🎭 故事风格：</text>
-        <scroll-view class="style-scroll" scroll-x="true" enable-flex="true">
+        <scroll-view class="style-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
           <view wx:for="{{styleOptions}}" wx:key="id" class="style-tag {{selectedStyle === item.id ? 'active' : ''}}" data-style="{{item.id}}" bindtap="onSelectStyle">
             <text class="style-icon">{{item.icon}}</text>
             <text>{{item.name}}</text>
@@ -255,7 +255,7 @@
       </view>
 
       <!-- Category Filter Tabs -->
-      <scroll-view class="vocab-cat-scroll" scroll-x="true" enable-flex="true">
+      <scroll-view class="vocab-cat-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
         <view wx:for="{{vocabCategories}}" wx:key="id" class="vocab-cat-tab {{selectedVocabCat === item.id ? 'active' : ''}}" data-cat="{{item.id}}" bindtap="onSelectVocabCat">
           <text>{{item.name}}</text>
           <text class="cat-count">({{item.count}})</text>
@@ -263,7 +263,7 @@
       </scroll-view>
 
       <!-- Word List Area -->
-      <scroll-view class="vocab-list-scroll" scroll-y="true">
+      <scroll-view class="vocab-list-scroll" scroll-y="true" enhanced="true" show-scrollbar="true" bounces="true">
         <view class="vocab-items-grid" wx:if="{{filteredVocabList.length > 0}}">
           <view wx:for="{{filteredVocabList}}" wx:key="word" class="vocab-db-card {{selectedVocabMap[item.word] ? 'selected' : ''}}" data-word="{{item.word}}" bindtap="toggleSelectVocabItem">
             <view class="vocab-card-top">
