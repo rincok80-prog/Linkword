@@ -39,6 +39,10 @@
             <text class="btn-icon">📷</text>
             <text>拍照/图片识别</text>
           </view>
+          <view class="action-btn secondary-btn-sm" bindtap="openVocabIndex" style="background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.3);">
+            <text class="btn-icon">📖</text>
+            <text style="color: #4f46e5; font-weight: 600;">单词索引 (中文选词)</text>
+          </view>
           <view class="text-btn-sm" bindtap="clearWords" wx:if="{{wordsInputValue}}">清空</view>
         </view>
         <view class="action-right">
@@ -205,6 +209,68 @@
         <view class="crop-footer-right">
           <view class="secondary-btn-sm" bindtap="cancelCropEditor">取消</view>
           <view class="primary-btn-submit" bindtap="confirmCropAndRunOCR">确认识别</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Word Index & Chinese Selector Modal -->
+  <view class="vocab-modal-backdrop" wx:if="{{showVocabModal}}">
+    <view class="vocab-modal-card">
+      <view class="vocab-modal-header">
+        <view class="vocab-header-left">
+          <text class="vocab-modal-title">📖 单词索引 (支持中文选词)</text>
+          <text class="vocab-modal-sub">输入中文搜索对应英文单词，点击勾选一键填入</text>
+        </view>
+        <view class="close-modal-btn" bindtap="closeVocabIndex">✕</view>
+      </view>
+
+      <!-- Realtime Search Box -->
+      <view class="vocab-search-box">
+        <text class="search-lens-icon">🔍</text>
+        <input class="vocab-search-field" placeholder="输入中文 (如: 放弃/怀旧) 或英文查词..." placeholder-class="textarea-placeholder" value="{{vocabSearchQuery}}" bindinput="onVocabSearchInput" confirm-type="search" focus="{{showVocabModal}}" />
+        <view class="clear-search-btn" bindtap="clearVocabSearch" wx:if="{{vocabSearchQuery}}">✕</view>
+      </view>
+
+      <!-- Candidate Word List Area -->
+      <scroll-view class="vocab-list-scroll" scroll-y="true" enhanced="true" show-scrollbar="true" bounces="true">
+        <view class="vocab-searching-indicator" wx:if="{{isSearchingOnline}}">
+          <text class="search-loading-text">🌐 正在查询英文候选词...</text>
+        </view>
+        <view class="vocab-items-grid" wx:if="{{filteredVocabList.length > 0}}">
+          <view wx:for="{{filteredVocabList}}" wx:key="word" class="vocab-db-card {{selectedVocabMap[item.word] ? 'selected' : ''}}" data-word="{{item.word}}" bindtap="toggleSelectVocabItem">
+            <view class="vocab-card-top">
+              <view class="vocab-word-info">
+                <text class="vocab-main-word">{{item.word}}</text>
+                <text class="vocab-pos-tag" wx:if="{{item.pos}}">{{item.pos}}</text>
+                <text class="vocab-ipa-text" wx:if="{{item.phonetic}}">{{item.phonetic}}</text>
+              </view>
+              <view class="select-checkbox {{selectedVocabMap[item.word] ? 'checked' : ''}}">
+                <text wx:if="{{selectedVocabMap[item.word]}}">✓</text>
+              </view>
+            </view>
+            <view class="vocab-card-bottom">
+              <text class="vocab-def-text">{{item.def}}</text>
+              <text class="vocab-cat-badge" wx:if="{{item.catName}}">{{item.catName}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="vocab-empty-box" wx:elif="{{!isSearchingOnline}}">
+          <text class="empty-emoji">💡</text>
+          <text>输入中文关键词（如“坚持”、“美好”）即可实时查找英文单词并勾选！</text>
+        </view>
+      </scroll-view>
+
+      <!-- Bottom Action Footer -->
+      <view class="vocab-modal-footer">
+        <view class="footer-left">
+          <text class="selected-counter" wx:if="{{selectedVocabCount > 0}}">已选 {{selectedVocabCount}} 词</text>
+        </view>
+        <view class="footer-right">
+          <view class="text-btn-sm" bindtap="clearSelectedVocab" wx:if="{{selectedVocabCount > 0}}" style="margin-right: 12rpx;">清空</view>
+          <view class="primary-btn-submit {{selectedVocabCount === 0 ? 'disabled' : ''}}" bindtap="applySelectedVocab">
+            <text>一键填入 ({{selectedVocabCount}})</text>
+          </view>
         </view>
       </view>
     </view>

@@ -68,6 +68,17 @@ document.addEventListener('DOMContentLoaded', () => {
         cropClearBtn: document.getElementById('crop-clear-btn'),
         cropCancelBtn: document.getElementById('crop-cancel-btn'),
         cropConfirmBtn: document.getElementById('crop-confirm-btn'),
+
+        // Word Index Modal Elements
+        openVocabModalBtn: document.getElementById('open-vocab-modal-btn'),
+        closeVocabModalBtn: document.getElementById('close-vocab-modal-btn'),
+        vocabModal: document.getElementById('vocab-modal'),
+        vocabSearchInput: document.getElementById('vocab-search-input'),
+        clearVocabSearchBtn: document.getElementById('clear-vocab-search-btn'),
+        vocabListContainer: document.getElementById('vocab-list-container'),
+        vocabSelectedBadge: document.getElementById('vocab-selected-badge'),
+        vocabClearSelectedBtn: document.getElementById('vocab-clear-selected-btn'),
+        vocabApplyBtn: document.getElementById('vocab-apply-btn'),
     };
 
     // App State
@@ -82,6 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
         stream: null,
         selectedImageBase64: null,
         selectedImageMime: null,
+        selectedVocabMap: {},
+        vocabSearchQuery: '',
     };
 
     // Initialize Application
@@ -282,6 +295,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.wordsInput.focus();
             });
         });
+
+        // Word Index & Chinese Selector Modal Listeners
+        if (elements.openVocabModalBtn) {
+            elements.openVocabModalBtn.addEventListener('click', openVocabModal);
+        }
+        if (elements.closeVocabModalBtn) {
+            elements.closeVocabModalBtn.addEventListener('click', closeVocabModal);
+        }
+        if (elements.vocabModal) {
+            elements.vocabModal.addEventListener('click', (e) => {
+                if (e.target === elements.vocabModal) closeVocabModal();
+            });
+        }
+        if (elements.vocabSearchInput) {
+            elements.vocabSearchInput.addEventListener('input', onVocabSearch);
+        }
+        if (elements.clearVocabSearchBtn) {
+            elements.clearVocabSearchBtn.addEventListener('click', () => {
+                elements.vocabSearchInput.value = '';
+                onVocabSearch();
+            });
+        }
+        if (elements.vocabClearSelectedBtn) {
+            elements.vocabClearSelectedBtn.addEventListener('click', clearSelectedVocab);
+        }
+        if (elements.vocabApplyBtn) {
+            elements.vocabApplyBtn.addEventListener('click', applySelectedVocab);
+        }
 
         // Main generation trigger
         elements.generateBtn.addEventListener('click', handleGeneration);
@@ -1256,5 +1297,192 @@ JSON Schema 结构：
         elements.scanTabs.classList.remove('hidden');
         
         processImageOCR(croppedBase64, cropMime);
+    }
+
+    // ==========================================================================
+    // Word Index & Chinese Selection Helper Functions (Web)
+    // ==========================================================================
+    let allVocabListWeb = [];
+    let vocabSearchTimer = null;
+    let onlineVocabResults = [];
+
+    function initVocabDatabaseWeb() {
+        if (!window.VOCAB_DATABASE) return;
+        allVocabListWeb = window.VOCAB_DATABASE.map(item => ({
+            ...item,
+            catName: '核心词'
+        }));
+        renderVocabList();
+    }
+
+    function openVocabModal() {
+        if (!elements.vocabModal) return;
+        elements.vocabModal.classList.remove('hidden');
+        renderVocabList();
+        if (elements.vocabSearchInput) {
+            setTimeout(() => elements.vocabSearchInput.focus(), 100);
+        }
+    }
+
+    function closeVocabModal() {
+        if (!elements.vocabModal) return;
+        elements.vocabModal.classList.add('hidden');
+    }
+
+    function onVocabSearch() {
+        state.vocabSearchQuery = (elements.vocabSearchInput.value || '').trim();
+        if (state.vocabSearchQuery) {
+            elements.clearVocabSearchBtn.classList.remove('hidden');
+        } else {
+            elements.clearVocabSearchBtn.classList.add('hidden');
+            onlineVocabResults = [];
+        }
+        renderVocabList();
+
+        if (vocabSearchTimer) clearTimeout(vocabSearchTimer);
+        const query = state.vocabSearchQuery;
+        if (query.length >= 1) {
+            vocabSearchTimer = setTimeout(() => {
+                queryOnlineVocab(query);
+            }, 300);
+        }
+    }
+
+    async function queryOnlineVocab(query) {
+        if (!query) return;
+        const isChinese = /[\u4e00-\u9fa5]/.test(query);
+        try {
+            const resp = await fetch(`/api/dict?q=${encodeURIComponent(query)}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && Array.isArray(data.results) && data.results.length > 0) {
+                    onlineVocabResults = data.results.map(item => ({
+                        word: item.word,
+                        phonetic: item.phonetic || '',
+                        pos: item.pos || '',
+                        def: item.def,
+                        catName: isChinese ? '中文候选词' : '词典释义',
+                        isOnline: true
+                    }));
+                    renderVocabList();
+                }
+            }
+        } catch(e) {
+            // Ignore online error
+        }
+    }
+
+    function renderVocabList() {
+        if (!elements.vocabListContainer) return;
+        const query = (state.vocabSearchQuery || '').toLowerCase();
+        const isChinese = /[\u4e00-\u9fa5]/.test(query);
+        let list = allVocabListWeb;
+
+        if (query) {
+            list = list.filter(w => w.word.toLowerCase().includes(query) || (w.def && w.def.includes(query)));
+            
+            list.sort((a, b) => {
+                const aWord = a.word.toLowerCase();
+                const bWord = b.word.toLowerCase();
+                const aStarts = aWord.startsWith(query) ? 0 : 1;
+                const bStarts = bWord.startsWith(query) ? 0 : 1;
+                if (aStarts !== bStarts) return aStarts - bStarts;
+                return aWord.localeCompare(bWord);
+            });
+
+            if (onlineVocabResults && onlineVocabResults.length > 0) {
+                const existingWords = new Set(list.map(w => w.word.toLowerCase()));
+                const newOnline = onlineVocabResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+                if (isChinese) {
+                    list = [...newOnline, ...list];
+                } else {
+                    list = [...list, ...newOnline];
+                }
+            }
+        }
+
+        if (list.length === 0) {
+            elements.vocabListContainer.innerHTML = `
+                <div style="padding: 40px 0; text-align: center; color: var(--text-muted);">
+                    <div style="font-size: 32px; margin-bottom: 8px;">💡</div>
+                    <p>输入中文关键词（如“坚持”、“美好”）即可实时查找英文单词并勾选！</p>
+                </div>
+            `;
+            return;
+        }
+
+        elements.vocabListContainer.innerHTML = list.map(item => {
+            const isSelected = !!state.selectedVocabMap[item.word];
+            return `
+                <div class="vocab-db-row ${isSelected ? 'selected' : ''}" data-word="${item.word}">
+                    <div class="vocab-row-left">
+                        <div class="vocab-word-title-row">
+                            <span class="vocab-word-name">${item.word}</span>
+                            ${item.pos ? `<span class="vocab-word-pos">${item.pos}</span>` : ''}
+                            ${item.phonetic ? `<span class="vocab-word-ipa">${item.phonetic}</span>` : ''}
+                        </div>
+                        <div class="vocab-word-def">${item.def}</div>
+                    </div>
+                    <div class="vocab-row-right">
+                        ${item.catName ? `<span class="vocab-cat-tag">${item.catName}</span>` : ''}
+                        <div class="vocab-check-circle">${isSelected ? '✓' : ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        elements.vocabListContainer.querySelectorAll('.vocab-db-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const word = row.dataset.word;
+                toggleSelectVocab(word);
+            });
+        });
+
+        updateVocabSelectedUI();
+    }
+
+    function toggleSelectVocab(word) {
+        if (state.selectedVocabMap[word]) {
+            delete state.selectedVocabMap[word];
+        } else {
+            state.selectedVocabMap[word] = true;
+        }
+        renderVocabList();
+    }
+
+    function updateVocabSelectedUI() {
+        const count = Object.keys(state.selectedVocabMap).length;
+        if (count > 0) {
+            elements.vocabSelectedBadge.textContent = `已选 ${count} 词`;
+            elements.vocabSelectedBadge.classList.remove('hidden');
+            elements.vocabClearSelectedBtn.classList.remove('hidden');
+            elements.vocabApplyBtn.disabled = false;
+            elements.vocabApplyBtn.textContent = `一键填入 (${count})`;
+        } else {
+            elements.vocabSelectedBadge.classList.add('hidden');
+            elements.vocabClearSelectedBtn.classList.add('hidden');
+            elements.vocabApplyBtn.disabled = true;
+            elements.vocabApplyBtn.textContent = `一键填入 (0)`;
+        }
+    }
+
+    function clearSelectedVocab() {
+        state.selectedVocabMap = {};
+        renderVocabList();
+    }
+
+    function applySelectedVocab() {
+        const selected = Object.keys(state.selectedVocabMap);
+        if (selected.length === 0) return;
+        const currentVal = (elements.wordsInput.value || '').trim();
+        if (currentVal) {
+            elements.wordsInput.value = currentVal + ', ' + selected.join(', ');
+        } else {
+            elements.wordsInput.value = selected.join(', ');
+        }
+        closeVocabModal();
+        state.selectedVocabMap = {};
+        showToast(`已填入 ${selected.length} 个单词`, 'success');
+        elements.wordsInput.focus();
     }
 });

@@ -75,6 +75,9 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                                 拍照/图片识别
                             </button>
+                            <button id="open-vocab-modal-btn" class="secondary-btn" title="输入中文查找并勾选对应英文单词" style="border-color: rgba(99, 102, 241, 0.4); color: #4f46e5; background: rgba(99, 102, 241, 0.06);">
+                                📖 单词索引 (中文选词)
+                            </button>
                             <button id="clear-words-btn" class="text-btn">清空</button>
                         </div>
                         <button id="generate-btn" class="primary-btn">
@@ -280,11 +283,49 @@
             </div>
         </div>
 
+        <!-- Word Index & Chinese Selector Modal -->
+        <div id="vocab-modal" class="modal-backdrop hidden">
+            <div class="modal-card vocab-modal-dialog">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <h3>📖 单词索引 (支持中文选词)</h3>
+                        <p class="modal-desc">输入中文查找对应英文单词，点击勾选即可一键填入</p>
+                    </div>
+                    <button id="close-vocab-modal-btn" class="close-btn">&times;</button>
+                </div>
+                
+                <div class="vocab-modal-body">
+                    <!-- Search Field -->
+                    <div class="vocab-search-bar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="vocab-search-input" placeholder="输入中文 (如: 放弃/怀旧) 或英文查词..." autocomplete="off" />
+                        <button type="button" id="clear-vocab-search-btn" class="clear-search-btn hidden">&times;</button>
+                    </div>
+
+                    <!-- Word List Grid -->
+                    <div class="vocab-list-container" id="vocab-list-container">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <div class="modal-footer vocab-modal-footer">
+                    <div class="footer-left">
+                        <span id="vocab-selected-badge" class="vocab-selected-badge hidden">已选 0 词</span>
+                    </div>
+                    <div class="footer-right">
+                        <button type="button" id="vocab-clear-selected-btn" class="text-btn hidden">清空</button>
+                        <button type="button" id="vocab-apply-btn" class="primary-btn" disabled>一键填入 (0)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     
     <!-- Global Audio Player for Mobile Compatibility -->
     <audio id="global-player" style="display: none;" preload="auto"></audio>
     
+    <script src="vocab_db.js?v=3.0"></script>
     <script src="app.js?v=3.0"></script>
 </body>
 </html>

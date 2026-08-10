@@ -1,5 +1,6 @@
 // pages/index/index.js
 const app = getApp();
+const { VOCAB_DATABASE } = require('../../utils/vocab_db.js');
 
 const loadingTips = [
   "正在用英文构思引人入胜的故事情节...",
@@ -34,13 +35,23 @@ Page({
     imageDisplayWidth: 300,
     imageDisplayHeight: 400,
     showFavorites: false,
-    favoritesList: []
+    favoritesList: [],
+    showVocabModal: false,
+    vocabSearchQuery: "",
+    isSearchingOnline: false,
+    selectedVocabMap: {},
+    selectedVocabCount: 0,
+    allVocabList: [],
+    filteredVocabList: []
   },
+
+  vocabSearchTimer: null,
 
   onLoad() {
     this.loadHistory();
     this.calculateNavHeight();
     this.loadFavorites();
+    this.initVocabList();
   },
 
   calculateNavHeight() {
@@ -86,6 +97,195 @@ Page({
       wordsInputValue: "",
       showEmptyState: true,
       showOutput: false
+    });
+  },
+
+  // ==========================================================================
+  // Word Index & Chinese Selection Methods
+  // ==========================================================================
+  initVocabList() {
+    const list = (VOCAB_DATABASE || []).map(item => ({
+      word: item.word,
+      phonetic: item.phonetic || '',
+      pos: item.pos || '',
+      def: item.def || '',
+      catName: '核心词'
+    }));
+    this.setData({
+      allVocabList: list,
+      filteredVocabList: list
+    });
+  },
+
+  openVocabIndex() {
+    this.setData({
+      showVocabModal: true
+    });
+    this.filterVocabList();
+  },
+
+  closeVocabIndex() {
+    this.setData({
+      showVocabModal: false
+    });
+  },
+
+  onVocabSearchInput(e) {
+    const val = e.detail.value;
+    this.setData({
+      vocabSearchQuery: val
+    });
+    this.filterVocabList();
+
+    if (this.vocabSearchTimer) clearTimeout(this.vocabSearchTimer);
+    const query = (val || '').trim();
+    if (query.length >= 1) {
+      this.vocabSearchTimer = setTimeout(() => {
+        this.queryOnlineDict(query);
+      }, 300);
+    } else {
+      this.setData({ isSearchingOnline: false });
+    }
+  },
+
+  clearVocabSearch() {
+    if (this.vocabSearchTimer) clearTimeout(this.vocabSearchTimer);
+    this.setData({
+      vocabSearchQuery: "",
+      isSearchingOnline: false
+    });
+    this.filterVocabList();
+  },
+
+  filterVocabList() {
+    const { allVocabList, vocabSearchQuery } = this.data;
+    const query = (vocabSearchQuery || '').trim().toLowerCase();
+
+    if (!query) {
+      this.setData({
+        filteredVocabList: allVocabList
+      });
+      return;
+    }
+
+    const filtered = allVocabList.filter(item => {
+      return item.word.toLowerCase().includes(query) || (item.def && item.def.includes(query));
+    });
+
+    filtered.sort((a, b) => {
+      const aWord = a.word.toLowerCase();
+      const bWord = b.word.toLowerCase();
+      const aStarts = aWord.startsWith(query) ? 0 : 1;
+      const bStarts = bWord.startsWith(query) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return aWord.localeCompare(bWord);
+    });
+
+    this.setData({
+      filteredVocabList: filtered
+    });
+  },
+
+  queryOnlineDict(query) {
+    if (!query) return;
+    const isChinese = /[\u4e00-\u9fa5]/.test(query);
+    this.setData({ isSearchingOnline: true });
+
+    wx.request({
+      url: `https://linkword.pages.dev/api/dict?q=${encodeURIComponent(query)}`,
+      method: 'GET',
+      success: (res) => {
+        if (res.statusCode === 200 && res.data && Array.isArray(res.data.results)) {
+          const onlineResults = res.data.results.map(item => ({
+            word: item.word,
+            phonetic: item.phonetic || '',
+            pos: item.pos || '',
+            def: item.def,
+            catName: isChinese ? '中文候选词' : '词典释义',
+            isOnline: true
+          }));
+
+          if (onlineResults.length > 0) {
+            const currentFiltered = [...this.data.filteredVocabList];
+            const existingWords = new Set(currentFiltered.map(w => w.word.toLowerCase()));
+            const newWords = onlineResults.filter(w => !existingWords.has(w.word.toLowerCase()));
+
+            if (isChinese) {
+              this.setData({
+                filteredVocabList: [...newWords, ...currentFiltered],
+                isSearchingOnline: false
+              });
+            } else {
+              this.setData({
+                filteredVocabList: [...currentFiltered, ...newWords],
+                isSearchingOnline: false
+              });
+            }
+          } else {
+            this.setData({ isSearchingOnline: false });
+          }
+        } else {
+          this.setData({ isSearchingOnline: false });
+        }
+      },
+      fail: () => {
+        this.setData({ isSearchingOnline: false });
+      }
+    });
+  },
+
+  toggleSelectVocabItem(e) {
+    const word = e.currentTarget.dataset.word;
+    const selectedMap = { ...this.data.selectedVocabMap };
+
+    if (selectedMap[word]) {
+      delete selectedMap[word];
+    } else {
+      selectedMap[word] = true;
+    }
+
+    const count = Object.keys(selectedMap).length;
+    this.setData({
+      selectedVocabMap: selectedMap,
+      selectedVocabCount: count
+    });
+  },
+
+  clearSelectedVocab() {
+    this.setData({
+      selectedVocabMap: {},
+      selectedVocabCount: 0
+    });
+  },
+
+  applySelectedVocab() {
+    const selectedWords = Object.keys(this.data.selectedVocabMap);
+    if (selectedWords.length === 0) {
+      wx.showToast({
+        title: '请先勾选单词',
+        icon: 'none'
+      });
+      return;
+    }
+
+    let currentVal = (this.data.wordsInputValue || '').trim();
+    let newVal = '';
+    if (currentVal) {
+      newVal = currentVal + ', ' + selectedWords.join(', ');
+    } else {
+      newVal = selectedWords.join(', ');
+    }
+
+    this.setData({
+      wordsInputValue: newVal,
+      showVocabModal: false,
+      selectedVocabMap: {},
+      selectedVocabCount: 0
+    });
+
+    wx.showToast({
+      title: `已填入 ${selectedWords.length} 个单词`,
+      icon: 'success'
     });
   },
 
