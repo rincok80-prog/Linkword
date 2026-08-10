@@ -1413,7 +1413,18 @@ JSON Schema 结构：
         }
 
         if (query) {
-            list = list.filter(w => w.word.toLowerCase().includes(query) || w.def.includes(query));
+            list = list.filter(w => w.word.toLowerCase().includes(query) || (w.def && w.def.includes(query)));
+            
+            // Priority Sort: Prefix match > High frequency (freq 1) > Alphabetical
+            list.sort((a, b) => {
+                const aWord = a.word.toLowerCase();
+                const bWord = b.word.toLowerCase();
+                const aStarts = aWord.startsWith(query) ? 0 : 1;
+                const bStarts = bWord.startsWith(query) ? 0 : 1;
+                if (aStarts !== bStarts) return aStarts - bStarts;
+                if (a.freq !== b.freq) return (a.freq || 1) - (b.freq || 1);
+                return aWord.localeCompare(bWord);
+            });
         }
 
         if (list.length === 0) {

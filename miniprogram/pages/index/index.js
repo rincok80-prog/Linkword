@@ -226,7 +226,18 @@ Page({
 
     if (query) {
       filtered = filtered.filter(item => {
-        return item.word.toLowerCase().includes(query) || item.def.includes(query);
+        return item.word.toLowerCase().includes(query) || (item.def && item.def.includes(query));
+      });
+
+      // Priority Sort: Prefix match > High frequency (freq 1) > Alphabetical
+      filtered.sort((a, b) => {
+        const aWord = a.word.toLowerCase();
+        const bWord = b.word.toLowerCase();
+        const aStarts = aWord.startsWith(query) ? 0 : 1;
+        const bStarts = bWord.startsWith(query) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+        if (a.freq !== b.freq) return (a.freq || 1) - (b.freq || 1);
+        return aWord.localeCompare(bWord);
       });
     }
 
