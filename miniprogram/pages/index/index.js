@@ -1420,7 +1420,7 @@ Page({
       this.setData({
         currentTip: loadingTips[index]
       });
-    }, 3000);
+    }, 1200);
 
     this.setData({
       tipIntervalId: intervalId

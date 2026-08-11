@@ -153,8 +153,12 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
         const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
         
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3200); // 3.2s speed timeout
+
             const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
                 method: "POST",
+                signal: controller.signal,
                 headers: {
                     "Authorization": `Bearer ${WECHAT_TOKEN}`,
                     "Content-Type": "application/json"
@@ -164,17 +168,20 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                     messages: [
                         {
                             role: "system",
-                            content: "You are a creative English learning assistant. Always generate unique, imaginative, and distinct stories on every single request. Output ONLY pure, valid JSON format strings."
+                            content: "You are a creative English learning assistant. Output ONLY pure, valid JSON format strings."
                         },
                         {
                             role: "user",
                             content: prompt
                         }
                     ],
-                    temperature: 0.9,
-                    top_p: 0.95
+                    max_tokens: 380,
+                    temperature: 0.85,
+                    top_p: 0.9
                 })
             });
+
+            clearTimeout(timeoutId);
 
             if (wechatResp.ok) {
                 const wechatJson = await wechatResp.json();
@@ -203,10 +210,10 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                 });
             }
         } catch (wechatErr) {
-            console.error("WeChat AI Engine fallback to Gemini:", wechatErr);
+            console.error("WeChat AI Engine timeout/fallback to Gemini Flash:", wechatErr);
         }
 
-        // 2. Fallback Engine: Google Gemini Flash
+        // 2. High Speed Fallback Engine: Google Gemini Flash
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
 
@@ -217,7 +224,7 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
             });
         }
 
-        const response = await fetch(`https://${apiHost}/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
+        const response = await fetch(`https://${apiHost}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -234,8 +241,9 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                 ],
                 generationConfig: {
                     responseMimeType: "application/json",
-                    temperature: 0.92,
-                    topP: 0.95
+                    maxOutputTokens: 380,
+                    temperature: 0.85,
+                    topP: 0.9
                 }
             })
         });
