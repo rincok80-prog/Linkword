@@ -222,7 +222,6 @@ function repairAndParseJson(str) {
                                 content: prompt
                             }
                         ],
-                        max_tokens: 1200,
                         temperature: 0.85,
                         top_p: 0.9
                     })
