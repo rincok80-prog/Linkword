@@ -111,42 +111,33 @@ export async function onRequestPost(context) {
         const randomTheme = creativeThemes[Math.floor(Math.random() * creativeThemes.length)];
         const randomSeed = Math.floor(Math.random() * 1000000);
 
-        const prompt = `您是英语教学与联想记忆创意大师。
-目标单词列表：[${promptWordItems.join(', ')}]。
-整体风格：【${styleDesc}】
-本次灵感场景设定：【${randomTheme}】（创作编号: ${randomSeed}）
-${lengthNote}
-${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了【强制指定含义】，故事剧情与例句必须 100% 严格采用该指定释义，绝对严禁使用其他无关的常见释义！' : ''}
+        const maxTokens = length === 'short' ? 260 : length === 'medium' ? 380 : 500;
 
-请用通俗易懂的初中词汇，根据上述要求${lengthDesc}，帮助学生通过场景联想牢固记住这几个单词。
+        const prompt = `您是英语教学大师。请为单词列表: [${promptWordItems.join(', ')}] 创作极简趣味联想微故事。
+灵感场景: 【${randomTheme}】（编号: ${randomSeed}）。
+要求：
+1. 篇幅：【${lengthNote}】，${lengthDesc}。
+${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的单词必须100%采用指定释义。' : ''}
+3. 故事中目标词用 <strong>单词</strong> 加粗。
+4. 提供音标、词性、故事中的含义、5-8词极简例句，以及 2 个该词的其他常用中文释义(alt_meanings)。
 
-【关键要求】：
-1. 篇幅长度必须严格符合【${lengthNote}】！
-2. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
-3. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
-4. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
-5. 针对每个单词，请在 alt_meanings 中列出 2-3 个该词在考试/日常中的【其他不同常用中文含义】，以便学生学习一词多义。
-
-请严格以无任何额外解释、纯 JSON 格式输出：
+必须输出无额外说明的纯 JSON 格式：
 {
-  "story": "微故事英文内容（必须自然包含所有输入单词，并用 <strong>单词</strong> 加粗）",
-  "story_translation": "通俗生动的中文对照翻译",
+  "story": "英文微故事（包含 <strong>单词</strong>）",
+  "story_translation": "中文对照翻译",
   "words": [
     {
-      "word": "单词原形（例如 plant）",
-      "ipa": "美式音标，例如 /'prɪstiːn/",
-      "pos": "词性，例如 n.",
-      "definition": "当前故事中采用的中文释义（若有指定含义请严格使用该含义）",
-      "sentence": "5-8个词的极其简单的新例句",
+      "word": "plant",
+      "ipa": "/plænt/",
+      "pos": "n.",
+      "definition": "工厂",
+      "sentence": "He works in a plant.",
       "alt_meanings": [
-        { "pos": "n.", "def": "其他常用释义1" },
-        { "pos": "v.", "def": "其他常用释义2" }
+        { "pos": "n.", "def": "植物" }
       ]
     }
   ]
-}
-
-注意：为了防止 JSON 解析失败，字符串内如有引号请使用单引号（'），严禁在 JSON 属性值内直接使用未转义的双引号（"）。`;
+}`;
 
         // 1. Primary Engine: Google Gemini Flash (Blazing fast ~1.2s response time)
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
@@ -154,9 +145,7 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
 
         if (GEMINI_KEY) {
             try {
-                // gemini-1.5-flash or gemini-2.0-flash-lite for ultra-fast generation
-                const geminiModel = 'gemini-1.5-flash';
-                const geminiUrl = `https://${apiHost}/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_KEY}`;
+                const geminiUrl = `https://${apiHost}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
                 
                 const response = await fetch(geminiUrl, {
                     method: 'POST',
@@ -169,8 +158,8 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                         ],
                         generationConfig: {
                             responseMimeType: "application/json",
-                            temperature: 0.85,
-                            maxOutputTokens: 450
+                            temperature: 0.8,
+                            maxOutputTokens: maxTokens
                         }
                     })
                 });
