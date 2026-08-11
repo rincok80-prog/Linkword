@@ -148,7 +148,59 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
 
 注意：为了防止 JSON 解析失败，字符串内如有引号请使用单引号（'），严禁在 JSON 属性值内直接使用未转义的双引号（"）。`;
 
-        // 1. Primary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
+        // 1. Primary Engine: Google Gemini Flash (Blazing fast ~1.2s response time)
+        const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
+        const apiHost = proxyHost || 'generativelanguage.googleapis.com';
+
+        if (GEMINI_KEY) {
+            try {
+                // gemini-1.5-flash or gemini-2.0-flash-lite for ultra-fast generation
+                const geminiModel = 'gemini-1.5-flash';
+                const geminiUrl = `https://${apiHost}/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_KEY}`;
+                
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                parts: [{ text: prompt }]
+                            }
+                        ],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            temperature: 0.85,
+                            maxOutputTokens: 450
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const respText = await response.text();
+                    const data = JSON.parse(respText);
+                    let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    
+                    jsonText = jsonText.trim();
+                    const firstBrace = jsonText.indexOf('{');
+                    const lastBrace = jsonText.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1) {
+                        jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+                    }
+                    
+                    // Validate JSON
+                    JSON.parse(jsonText);
+                    
+                    return new Response(jsonText, {
+                        status: 200,
+                        headers: corsHeaders
+                    });
+                }
+            } catch (geminiErr) {
+                console.warn("Gemini Engine fallback to WeChat AI:", geminiErr);
+            }
+        }
+
+        // 2. Secondary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
         const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
         
         try {
@@ -170,8 +222,8 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                             content: prompt
                         }
                     ],
-                    temperature: 0.9,
-                    top_p: 0.95
+                    temperature: 0.85,
+                    max_tokens: 450
                 })
             });
 
@@ -202,62 +254,11 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                 });
             }
         } catch (wechatErr) {
-            console.error("WeChat AI Engine fallback to Gemini:", wechatErr);
+            console.error("WeChat AI Engine error:", wechatErr);
         }
 
-        // 2. Fallback Engine: Google Gemini Flash
-        const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
-        const apiHost = proxyHost || 'generativelanguage.googleapis.com';
-
-        if (!GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
-                status: 500,
-                headers: corsHeaders
-            });
-        }
-
-        const response = await fetch(`https://${apiHost}/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        parts: [
-                            {
-                                text: prompt
-                            }
-                        ]
-                    }
-                ],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    temperature: 0.92,
-                    topP: 0.95
-                }
-            })
-        });
-        
-        const respText = await response.text();
-        if (response.status !== 200) {
-            throw new Error(`Gemini API error (HTTP ${response.status}): ${respText}`);
-        }
-        
-        const data = JSON.parse(respText);
-        let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        
-        jsonText = jsonText.trim();
-        const firstBrace = jsonText.indexOf('{');
-        const lastBrace = jsonText.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
-        }
-        
-        JSON.parse(jsonText);
-        
-        return new Response(jsonText, {
-            status: 200,
+        return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
+            status: 500,
             headers: corsHeaders
         });
         
