@@ -43,58 +43,61 @@
         <textarea id="words-input" class="words-textarea" placeholder="例如: pristine, obsolete, digital..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
       </view>
 
-      <!-- Tool Bar (Random + OCR + Word Index) -->
-      <view class="input-toolbar">
-        <view class="tool-btn tool-btn-random" bindtap="fillRandomWords">
-          <text class="tool-icon">🎲</text>
-          <text class="tool-text">随机试词</text>
+      <!-- Action Control Zone -->
+      <view class="input-actions-zone">
+        <!-- 3 Unified Clean Tool Buttons -->
+        <view class="input-toolbar">
+          <view class="tool-btn" bindtap="fillRandomWords">
+            <text class="tool-icon">🎲</text>
+            <text class="tool-text">随机试词</text>
+          </view>
+          <view class="tool-btn" bindtap="startOCR">
+            <text class="tool-icon">📷</text>
+            <text class="tool-text">拍照识别</text>
+          </view>
+          <view class="tool-btn" bindtap="openVocabIndex">
+            <text class="tool-icon">📖</text>
+            <text class="tool-text">中文选词</text>
+          </view>
         </view>
-        <view class="tool-btn" bindtap="startOCR">
-          <text class="tool-icon">📷</text>
-          <text class="tool-text">拍照识别</text>
-        </view>
-        <view class="tool-btn tool-btn-highlight" bindtap="openVocabIndex">
-          <text class="tool-icon">📖</text>
-          <text class="tool-text">中文选词</text>
-        </view>
-      </view>
 
-      <!-- Interactive Story Length Collapsible Container -->
-      <view class="length-slider-container {{showLengthSlider ? 'expanded' : 'collapsed'}}">
-        <view class="slider-header" bindtap="toggleLengthSlider">
-          <view class="slider-header-left">
-            <text class="slider-label">⚙️ 篇幅设定:</text>
-            <view class="slider-current-badge">
-              <text class="badge-icon">{{storyLengthInfo.icon}}</text>
-              <text class="badge-text">{{storyLengthInfo.title}} ({{storyLengthInfo.desc}})</text>
+        <!-- Seamless Embedded Story Length Bar -->
+        <view class="length-setting-bar {{showLengthSlider ? 'expanded' : ''}}">
+          <view class="length-bar-header" bindtap="toggleLengthSlider">
+            <view class="length-bar-left">
+              <text class="length-setting-title">⚙️ 篇幅设定：</text>
+              <view class="length-active-pill">
+                <text class="pill-badge-icon">{{storyLengthInfo.icon}}</text>
+                <text class="pill-badge-text">{{storyLengthInfo.title}} ({{storyLengthInfo.desc}})</text>
+              </view>
+            </view>
+            <view class="length-bar-toggle">
+              <text class="toggle-hint">{{showLengthSlider ? '收起' : '调节'}}</text>
+              <text class="toggle-chevron">{{showLengthSlider ? '▲' : '▼'}}</text>
             </view>
           </view>
-          <view class="slider-toggle-btn">
-            <text class="toggle-text">{{showLengthSlider ? '收起' : '调节'}}</text>
-            <text class="toggle-arrow">{{showLengthSlider ? '▲' : '▼'}}</text>
-          </view>
-        </view>
 
-        <!-- Hidden by default, expands when clicked -->
-        <view class="slider-expand-body" wx:if="{{showLengthSlider}}">
-          <view class="slider-track-wrap">
-            <slider
-              min="1"
-              max="3"
-              step="1"
-              value="{{storyLengthValue}}"
-              bindchange="onLengthSliderChange"
-              bindchanging="onLengthSliderChanging"
-              activeColor="#4f46e5"
-              backgroundColor="#e2e8f0"
-              block-size="22"
-              block-color="#4f46e5"
-            />
-          </view>
-          <view class="slider-scale-labels">
-            <text class="scale-item {{storyLengthValue === 1 ? 'scale-active' : ''}}" data-val="1" bindtap="onScaleTap">⚡ 极简 (1-2句)</text>
-            <text class="scale-item {{storyLengthValue === 2 ? 'scale-active' : ''}}" data-val="2" bindtap="onScaleTap">📖 标准 (3-4句)</text>
-            <text class="scale-item {{storyLengthValue === 3 ? 'scale-active' : ''}}" data-val="3" bindtap="onScaleTap">🌟 长篇 (5-6句)</text>
+          <!-- Smooth Expandable Slider Body -->
+          <view class="length-slider-dropdown" wx:if="{{showLengthSlider}}">
+            <view class="slider-track-wrap">
+              <slider
+                min="1"
+                max="3"
+                step="1"
+                value="{{storyLengthValue}}"
+                bindchange="onLengthSliderChange"
+                bindchanging="onLengthSliderChanging"
+                activeColor="#4f46e5"
+                backgroundColor="#e2e8f0"
+                block-size="20"
+                block-color="#4f46e5"
+              />
+            </view>
+            <view class="slider-scale-labels">
+              <text class="scale-item {{storyLengthValue === 1 ? 'scale-active' : ''}}" data-val="1" bindtap="onScaleTap">⚡ 极简 (1-2句)</text>
+              <text class="scale-item {{storyLengthValue === 2 ? 'scale-active' : ''}}" data-val="2" bindtap="onScaleTap">📖 标准 (3-4句)</text>
+              <text class="scale-item {{storyLengthValue === 3 ? 'scale-active' : ''}}" data-val="3" bindtap="onScaleTap">🌟 长篇 (5-6句)</text>
+            </view>
           </view>
         </view>
       </view>
