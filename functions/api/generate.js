@@ -31,15 +31,7 @@ export async function onRequestPost(context) {
             });
         }
         
-        // Environment Variable priority
         const GEMINI_KEY = env.GEMINI_KEY || "";
-        
-        if (!GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
-                status: 400,
-                headers: corsHeaders
-            });
-        }
         
         const parsedWords = words.map(item => {
             if (typeof item === 'string') {
@@ -98,20 +90,13 @@ export async function onRequestPost(context) {
             "时光穿越者在古代闹出的荒诞趣事",
             "大侦探在破解离奇谜案时的意外神反转",
             "超级英雄度假期间啼笑皆非的日常生活",
-            "深海王国里海洋生物举办的奇幻派对",
-            "未来太空站里宇航员与傲娇机器人的逗趣互动",
-            "宠物猫狗秘密策划的拯救零食大行动",
-            "午夜奇幻游乐园里发生的不可思议奇遇",
-            "神秘古堡探险时发现的搞笑宝藏",
-            "魔法学院新生上第一堂飞行课的爆笑瞬间",
-            "咖啡馆里一杯神奇饮品引发的连锁奇趣反应",
-            "秘密特工执行任务时的滑稽意外"
+            "宠物猫狗秘密策划的拯救零食大行动"
         ];
 
         const randomTheme = creativeThemes[Math.floor(Math.random() * creativeThemes.length)];
         const randomSeed = Math.floor(Math.random() * 1000000);
 
-        const maxTokens = length === 'short' ? 260 : length === 'medium' ? 380 : 500;
+        const maxTokens = length === 'short' ? 190 : length === 'medium' ? 320 : 450;
 
         const prompt = `您是英语教学大师。请为单词列表: [${promptWordItems.join(', ')}] 创作极简趣味联想微故事。
 灵感场景: 【${randomTheme}】（编号: ${randomSeed}）。
@@ -144,12 +129,25 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
 
+        const fetchWithTimeout = async (url, options, timeoutMs = 4500) => {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const resp = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(timer);
+                return resp;
+            } catch (err) {
+                clearTimeout(timer);
+                throw err;
+            }
+        };
+
         const tasks = [];
 
-        // Engine 1: SiliconFlow Qwen2.5-7B-Instruct (⚡ Ultra-fast 1.8s response)
+        // Engine 1: SiliconFlow Qwen2.5-7B-Instruct (⚡ Ultra-fast response)
         if (SILICON_KEY) {
             tasks.push((async () => {
-                const resp = await fetch("https://api.siliconflow.cn/v1/chat/completions", {
+                const resp = await fetchWithTimeout("https://api.siliconflow.cn/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${SILICON_KEY}`,
@@ -158,11 +156,11 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
                     body: JSON.stringify({
                         model: "Qwen/Qwen2.5-7B-Instruct",
                         messages: [{ role: "user", content: prompt }],
-                        temperature: 0.8,
+                        temperature: 0.75,
                         max_tokens: maxTokens,
                         response_format: { type: "json_object" }
                     })
-                });
+                }, 4000);
                 if (!resp.ok) throw new Error(`SiliconFlow HTTP ${resp.status}`);
                 const data = await resp.json();
                 let raw = data?.choices?.[0]?.message?.content || "";
@@ -177,22 +175,22 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
             })());
         }
 
-        // Engine 2: Google Gemini 1.5 Flash (⚡ ~1.2s response)
+        // Engine 2: Google Gemini 1.5 Flash (⚡ Ultra-fast)
         if (GEMINI_KEY) {
             tasks.push((async () => {
                 const geminiUrl = `https://${apiHost}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-                const resp = await fetch(geminiUrl, {
+                const resp = await fetchWithTimeout(geminiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: {
                             responseMimeType: "application/json",
-                            temperature: 0.8,
+                            temperature: 0.75,
                             maxOutputTokens: maxTokens
                         }
                     })
-                });
+                }, 4000);
                 if (!resp.ok) throw new Error(`Gemini HTTP ${resp.status}`);
                 const data = await resp.json();
                 let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -210,7 +208,7 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
         // Engine 3: WeChat AI Deepseek-v4-flash
         if (WECHAT_TOKEN) {
             tasks.push((async () => {
-                const resp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
+                const resp = await fetchWithTimeout("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${WECHAT_TOKEN}`,
@@ -225,7 +223,6 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
                         temperature: 0.85,
                         max_tokens: maxTokens
                     })
-                });
                 if (!resp.ok) throw new Error(`WeChat AI HTTP ${resp.status}`);
                 const data = await resp.json();
                 let raw = data?.choices?.[0]?.message?.content || "";
