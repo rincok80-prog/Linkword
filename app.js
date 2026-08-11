@@ -558,42 +558,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Clean and parse text area input into list of unique words and specified definitions
+    // Clean and parse text area input into list of unique words (preserving word(meaning) syntax)
     function parseInputWords() {
         const text = elements.wordsInput.value;
-        if (!text.trim()) return { words: [], wordDefs: {} };
+        if (!text.trim()) return [];
         
-        const entries = text
-            .split(/[\n,;，；]+/)
-            .map(s => s.trim())
+        const rawTokens = text
+            .split(/[,;，；\n\t]+/)
+            .map(w => w.trim())
             .filter(Boolean);
 
         const words = [];
-        const wordDefs = {};
-
-        for (const entry of entries) {
-            const match = entry.match(/^([a-zA-Z-]+)([\s:：=\(\[（【].*)?$/);
-            if (match) {
-                const w = match[1].toLowerCase().trim();
-                let rest = match[2] ? match[2].trim() : '';
-                rest = rest.replace(/^[\s:：=\(\[（【]+/, '').replace(/[\)\]）】]+$/, '').trim();
-                words.push(w);
-                if (rest) {
-                    wordDefs[w] = rest;
-                }
+        rawTokens.forEach(token => {
+            if (!token.includes('(') && !token.includes('（') && !token.includes(':') && !token.includes('：')) {
+                const subWords = token.split(/\s+/).filter(Boolean);
+                words.push(...subWords);
             } else {
-                const tokens = entry.split(/\s+/);
-                for (const t of tokens) {
-                    const clean = t.replace(/[^a-zA-Z-]/g, '').toLowerCase().trim();
-                    if (clean && clean.length >= 2) words.push(clean);
-                }
+                words.push(token);
             }
-        }
-        
-        return {
-            words: [...new Set(words)],
-            wordDefs: wordDefs
-        };
+        });
+
+        return words.filter(w => /[a-zA-Z]/.test(w));
     }
 
     let loadingTipInterval = null;
@@ -637,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main logic for handling word memory generation
     async function handleGeneration() {
-        const { words, wordDefs } = parseInputWords();
+        const words = parseInputWords();
         if (words.length === 0) {
             showToast('请输入一些英文单词', 'error');
             return;
@@ -660,10 +645,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // simulate short network latency for better experience
                     await new Promise(resolve => setTimeout(resolve, 800));
                 } else {
-                    result = await fetchSharedAIResult(words, wordDefs);
+                    result = await fetchSharedAIResult(words);
                 }
             } else {
-                result = await fetchAIResult(words, wordDefs);
+                result = await fetchAIResult(words);
             }
 
             renderResult(result);
@@ -686,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fetch result from our own backend proxy (runs when provider is local/default on live server)
-    async function fetchSharedAIResult(words, wordDefs = {}) {
+    async function fetchSharedAIResult(words) {
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: {
@@ -694,7 +679,6 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({
                 words: words,
-                wordDefs: wordDefs,
                 style: state.selectedStyle || 'humorous',
                 length: state.storyLength || 'medium'
             })
@@ -710,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fetch result from Gemini / DeepSeek / Custom endpoint
-    async function fetchAIResult(words, wordDefs = {}) {
+    async function fetchAIResult(words) {
         // If running on a local server, we route ALL requests through our local python server proxy
         // to automatically benefit from its VPN routing and bypass browser network blocks.
         if (window.location.protocol !== 'file:') {
@@ -721,7 +705,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     words: words,
-                    wordDefs: wordDefs,
                     style: state.selectedStyle || 'humorous',
                     length: state.storyLength || 'medium',
                     provider: state.apiProvider,
@@ -886,6 +869,33 @@ JSON Schema 结构：
         };
     }
 
+    // Helper to switch polysemy meaning and regenerate
+    function switchMeaningAndRegenerate(word, def) {
+        const shortDef = def.split(/[；;,]/)[0].trim();
+        const currentInput = elements.wordsInput.value.trim();
+        const tokens = currentInput.split(/[,，;；\n]+/).map(t => t.trim()).filter(Boolean);
+        let replaced = false;
+
+        const newTokens = tokens.map(token => {
+            const match = token.match(/^([a-zA-Z\s-]+)/);
+            if (match && match[1].trim().toLowerCase() === word.toLowerCase() && !replaced) {
+                replaced = true;
+                return `${match[1].trim()}(${shortDef})`;
+            }
+            return token;
+        });
+
+        if (!replaced) {
+            newTokens.push(`${word}(${shortDef})`);
+        }
+
+        elements.wordsInput.value = newTokens.join(', ');
+        showToast(`已切换为【${word} (${shortDef})】，正在重新构思趣味故事...`, 'info');
+        setTimeout(() => {
+            handleGeneration();
+        }, 300);
+    }
+
     // Render results dashboard
     function renderResult(result) {
         if (!result) return;
@@ -897,9 +907,31 @@ JSON Schema 结构：
         // Clean vocab grid
         elements.vocabGrid.innerHTML = '';
         
-        result.words.forEach(item => {
+        result.words.forEach((item, index) => {
             const card = document.createElement('div');
             card.className = 'vocab-card';
+
+            const hasAltMeanings = item.alt_meanings && item.alt_meanings.length > 0;
+            
+            let altMeaningsHtml = '';
+            if (hasAltMeanings) {
+                altMeaningsHtml = `
+                    <div class="polysemy-drawer hidden" id="polysemy-drawer-${index}">
+                        <div class="polysemy-drawer-header">💡 点击以下其他释义，AI 将按新词义重新创作故事：</div>
+                        <div class="polysemy-list">
+                            ${item.alt_meanings.map(alt => `
+                                <div class="polysemy-option" data-word="${item.word}" data-def="${alt.def}">
+                                    <div class="alt-left">
+                                        ${alt.pos ? `<span class="alt-pos">${alt.pos}</span>` : ''}
+                                        <span class="alt-def">${alt.def}</span>
+                                    </div>
+                                    <button class="alt-action-btn">一键换义 ➜</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
             
             card.innerHTML = `
                 <div class="vocab-word-info">
@@ -907,21 +939,48 @@ JSON Schema 结构：
                         <span class="vocab-word-title">${item.word}</span>
                         <div class="vocab-word-meta">
                             <span class="vocab-pos">${item.pos}</span>
-                            <span class="vocab-ipa">${item.ipa}</span>
+                            <span class="vocab-ipa">${item.ipa || ''}</span>
                         </div>
                     </div>
-                    <button class="tts-btn play-word-btn" title="朗读单词">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                    </button>
+                    <div class="vocab-card-actions">
+                        ${hasAltMeanings ? `
+                            <button class="polysemy-tag-btn" data-index="${index}" title="查看该词的其他含义">
+                                <span>🔄 多义词 ▾</span>
+                            </button>
+                        ` : ''}
+                        <button class="tts-btn play-word-btn" title="朗读单词">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="vocab-definition">${item.definition}</div>
-                <div class="vocab-sentence">${item.sentence}</div>
+                ${altMeaningsHtml}
+                <div class="vocab-sentence">${item.sentence || ''}</div>
             `;
             
             // Add click to speak voice for specific word card
             card.querySelector('.play-word-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 speakText(item.word);
+            });
+
+            const polyBtn = card.querySelector('.polysemy-tag-btn');
+            const drawer = card.querySelector(`#polysemy-drawer-${index}`);
+            if (polyBtn && drawer) {
+                polyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = drawer.classList.toggle('hidden');
+                    polyBtn.innerHTML = isHidden ? '<span>🔄 多义词 ▾</span>' : '<span>🔄 多义词 ▲</span>';
+                });
+            }
+
+            card.querySelectorAll('.polysemy-option').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const word = opt.getAttribute('data-word');
+                    const def = opt.getAttribute('data-def');
+                    switchMeaningAndRegenerate(word, def);
+                });
             });
             
             elements.vocabGrid.appendChild(card);
@@ -1666,31 +1725,17 @@ JSON Schema 结构：
     }
 
     function applySelectedVocab() {
-        const selectedEntries = Object.entries(state.selectedVocabMap);
-        if (selectedEntries.length === 0) return;
-
-        const currentQuery = (state.vocabSearchQuery || '').trim();
-        const isChinese = currentQuery && /[\u4e00-\u9fa5]/.test(currentQuery);
-
-        const formattedList = selectedEntries.map(([word, item]) => {
-            if (isChinese) {
-                return `${word}(${currentQuery})`;
-            } else if (item && item.definition) {
-                const firstDef = item.definition.split(/[,，;；\n]/)[0].trim().slice(0, 8);
-                return firstDef ? `${word}(${firstDef})` : word;
-            }
-            return word;
-        });
-
+        const selected = Object.keys(state.selectedVocabMap);
+        if (selected.length === 0) return;
         const currentVal = (elements.wordsInput.value || '').trim();
         if (currentVal) {
-            elements.wordsInput.value = currentVal + ', ' + formattedList.join(', ');
+            elements.wordsInput.value = currentVal + ', ' + selected.join(', ');
         } else {
-            elements.wordsInput.value = formattedList.join(', ');
+            elements.wordsInput.value = selected.join(', ');
         }
         closeVocabModal();
         state.selectedVocabMap = {};
-        showToast(`已填入 ${selectedEntries.length} 个单词`, 'success');
+        showToast(`已填入 ${selected.length} 个单词`, 'success');
         elements.wordsInput.focus();
     }
 });

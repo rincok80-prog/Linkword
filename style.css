@@ -883,6 +883,107 @@ button {
     font-weight: 500;
 }
 
+.vocab-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.polysemy-tag-btn {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #4f46e5;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.polysemy-tag-btn:hover {
+    background: #4f46e5;
+    color: #ffffff;
+}
+
+.polysemy-drawer {
+    background: var(--bg-app);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 4px 0;
+    animation: fadeIn 0.2s ease;
+}
+
+.polysemy-drawer.hidden {
+    display: none;
+}
+
+.polysemy-drawer-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.polysemy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.polysemy-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.polysemy-option:hover {
+    border-color: #4f46e5;
+    background: rgba(99, 102, 241, 0.04);
+}
+
+.alt-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+}
+
+.alt-pos {
+    font-size: 11px;
+    font-weight: 700;
+    color: #4f46e5;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.alt-def {
+    font-size: 12.5px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.alt-action-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(79, 70, 229, 0.2);
+}
+
 .vocab-sentence {
     font-size: 13.5px;
     color: var(--text-secondary);

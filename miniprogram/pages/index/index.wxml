@@ -31,7 +31,7 @@
       <view class="input-header">
         <view class="input-header-left">
           <text class="input-title">输入单词</text>
-          <text class="info-tip">支持指定义项，如: bank(河岸), plant(工厂)</text>
+          <text class="info-tip">用空格、逗号或换行分隔多个单词</text>
         </view>
         <view class="clear-text-btn" bindtap="clearWords" wx:if="{{wordsInputValue}}">
           <text class="clear-icon">✕</text>
@@ -40,7 +40,7 @@
       </view>
 
       <view class="textarea-wrapper">
-        <textarea id="words-input" class="words-textarea" placeholder="例如: bank (河岸), spring (弹簧), obsolete..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" bindblur="onWordsInput" bindconfirm="onWordsInput" maxlength="-1" />
+        <textarea id="words-input" class="words-textarea" placeholder="例如: pristine, obsolete, digital..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
       </view>
 
       <!-- Tool Bar (OCR + Word Index) -->
@@ -158,6 +158,13 @@
               <text class="vocab-ipa" wx:if="{{item.ipa}}">{{item.ipa}}</text>
             </view>
             <view class="vocab-actions-group">
+              <!-- Polysemy / Alt Meanings Switcher Trigger -->
+              <view class="polysemy-tag {{activePolysemyIndex === index ? 'active' : ''}}" wx:if="{{item.alt_meanings && item.alt_meanings.length > 0}}" data-index="{{index}}" bindtap="togglePolysemyOptions">
+                <text class="polysemy-tag-icon">🔄</text>
+                <text class="polysemy-tag-text">多义词</text>
+                <text class="polysemy-arrow">{{activePolysemyIndex === index ? '▲' : '▾'}}</text>
+              </view>
+
               <view class="word-favorite-btn {{item.isFavorite ? 'active' : ''}}" bindtap="toggleFavoriteWord" data-index="{{index}}">
                 <text class="fav-icon">{{item.isFavorite ? '★' : '☆'}}</text>
               </view>
@@ -170,6 +177,25 @@
             <text class="vocab-pos" wx:if="{{item.pos}}">{{item.pos}}</text>
             <text class="vocab-definition">{{item.definition}}</text>
           </view>
+
+          <!-- Polysemy Dropdown Drawer -->
+          <view class="polysemy-drawer" wx:if="{{activePolysemyIndex === index && item.alt_meanings && item.alt_meanings.length > 0}}">
+            <view class="polysemy-drawer-header">
+              <text class="polysemy-tip">💡 点击以下其他释义，AI 将按新词义重新创作故事：</text>
+            </view>
+            <view class="polysemy-list">
+              <view class="polysemy-option" wx:for="{{item.alt_meanings}}" wx:for-item="alt" wx:key="def" data-word="{{item.word}}" data-def="{{alt.def}}" bindtap="switchWordMeaningAndRegenerate">
+                <view class="alt-left">
+                  <text class="alt-pos" wx:if="{{alt.pos}}">{{alt.pos}}</text>
+                  <text class="alt-def">{{alt.def}}</text>
+                </view>
+                <view class="alt-action-btn">
+                  <text>一键换义 ➜</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
           <view class="vocab-example-box" wx:if="{{item.sentence}}">
             <text class="example-label">例句：</text>
             <text class="example-text">{{item.sentence}}</text>

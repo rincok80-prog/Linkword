@@ -1,15 +1,6 @@
 // pages/index/index.js
+const app = getApp();
 const { VOCAB_DATABASE } = require('../../utils/vocab_db.js');
-
-function getApiHost() {
-  try {
-    const app = getApp();
-    if (app && app.globalData && app.globalData.apiHost) {
-      return app.globalData.apiHost;
-    }
-  } catch (e) {}
-  return 'https://linkword.pages.dev';
-}
 
 let allVocabPool = [];
 
@@ -64,7 +55,8 @@ Page({
     storyLengthValue: 2,
     storyLength: "medium",
     storyLengthInfo: { icon: '📖', title: '标准故事', desc: '3-4 句' },
-    showLengthSlider: false
+    showLengthSlider: false,
+    activePolysemyIndex: -1
   },
 
   vocabSearchTimer: null,
@@ -463,8 +455,8 @@ Page({
   },
 
   applySelectedVocab() {
-    const selectedEntries = Object.entries(this.data.selectedVocabMap);
-    if (selectedEntries.length === 0) {
+    const selectedWords = Object.keys(this.data.selectedVocabMap);
+    if (selectedWords.length === 0) {
       wx.showToast({
         title: '请先勾选单词',
         icon: 'none'
@@ -472,25 +464,12 @@ Page({
       return;
     }
 
-    const currentQuery = (this.data.cleanQueryWord || '').trim();
-    const isChinese = !this.data.isEnglishQuery && currentQuery && /[\u4e00-\u9fa5]/.test(currentQuery);
-
-    const formattedList = selectedEntries.map(([word, item]) => {
-      if (isChinese) {
-        return `${word}(${currentQuery})`;
-      } else if (item && item.definition) {
-        const firstDef = item.definition.split(/[,，;；\n]/)[0].trim().slice(0, 8);
-        return firstDef ? `${word}(${firstDef})` : word;
-      }
-      return word;
-    });
-
     let currentVal = (this.data.wordsInputValue || '').trim();
     let newVal = '';
     if (currentVal) {
-      newVal = currentVal + ', ' + formattedList.join(', ');
+      newVal = currentVal + ', ' + selectedWords.join(', ');
     } else {
-      newVal = formattedList.join(', ');
+      newVal = selectedWords.join(', ');
     }
 
     this.setData({
@@ -852,7 +831,7 @@ Page({
       else if (filePath.endsWith('.gif')) mime = 'image/gif';
 
       wx.request({
-        url: `${getApiHost()}/api/ocr`,
+        url: `${app.globalData.apiHost}/api/ocr`,
         method: 'POST',
         header: {
           'content-type': 'application/json'
@@ -953,16 +932,62 @@ Page({
     } catch (err) {}
   },
 
-  // Main generator trigger
-  handleGeneration() {
-    console.log('[LinkWord] handleGeneration clicked! isGenerating:', this.data.isGenerating, 'wordsInputValue:', this.data.wordsInputValue);
+  togglePolysemyOptions(e) {
+    const idx = parseInt(e.currentTarget.dataset.index, 10);
+    this.setData({
+      activePolysemyIndex: this.data.activePolysemyIndex === idx ? -1 : idx
+    });
+  },
 
-    if (this.data.isGenerating) {
-      console.warn('[LinkWord] Request is already in progress, please wait.');
-      return;
+  switchWordMeaningAndRegenerate(e) {
+    const word = (e.currentTarget.dataset.word || '').trim();
+    const def = (e.currentTarget.dataset.def || '').trim();
+    if (!word || !def) return;
+
+    const shortDef = def.split(/[；;,]/)[0].trim();
+    const currentInput = this.data.wordsInputValue.trim();
+    
+    // Split words by commas, semicolons or spaces
+    const tokens = currentInput.split(/[,，;；\n]+/).map(t => t.trim()).filter(Boolean);
+    let replaced = false;
+
+    const newTokens = tokens.map(token => {
+      // match base English word before any parenthesis/colon
+      const match = token.match(/^([a-zA-Z\s-]+)/);
+      if (match && match[1].trim().toLowerCase() === word.toLowerCase() && !replaced) {
+        replaced = true;
+        return `${match[1].trim()}(${shortDef})`;
+      }
+      return token;
+    });
+
+    if (!replaced) {
+      newTokens.push(`${word}(${shortDef})`);
     }
 
-    const rawInput = (this.data.wordsInputValue || '').trim();
+    const nextInputValue = newTokens.join(', ');
+    this.setData({
+      wordsInputValue: nextInputValue,
+      activePolysemyIndex: -1
+    });
+
+    wx.showToast({
+      title: `已切换为【${word} (${shortDef})】`,
+      icon: 'none',
+      duration: 1800
+    });
+
+    // Auto trigger regeneration with new meaning
+    setTimeout(() => {
+      this.handleGeneration();
+    }, 350);
+  },
+
+  // Main generator trigger
+  handleGeneration() {
+    if (this.data.isGenerating) return;
+
+    const rawInput = this.data.wordsInputValue.trim();
     if (!rawInput) {
       wx.showToast({
         title: '请输入英文单词',
@@ -971,35 +996,25 @@ Page({
       return;
     }
 
-    // Split words by lines or commas and parse optional target definitions (e.g. "bank (河岸)", "spring:弹簧")
-    const entries = rawInput
-      .split(/[\n,;，；]+/)
-      .map(s => s.trim())
+    // Split words by common delimiters while preserving (meaning) syntax
+    const rawTokens = rawInput
+      .split(/[,;，；\n\t]+/)
+      .map(w => w.trim())
       .filter(Boolean);
 
     const words = [];
-    const wordDefs = {};
-
-    for (const entry of entries) {
-      const match = entry.match(/^([a-zA-Z-]+)([\s:：=\(\[（【].*)?$/);
-      if (match) {
-        const w = match[1].toLowerCase().trim();
-        let rest = match[2] ? match[2].trim() : '';
-        rest = rest.replace(/^[\s:：=\(\[（【]+/, '').replace(/[\)\]）】]+$/, '').trim();
-        words.push(w);
-        if (rest) {
-          wordDefs[w] = rest;
-        }
+    rawTokens.forEach(token => {
+      if (!token.includes('(') && !token.includes('（') && !token.includes(':') && !token.includes('：')) {
+        const subWords = token.split(/\s+/).filter(Boolean);
+        words.push(...subWords);
       } else {
-        const tokens = entry.split(/\s+/);
-        for (const t of tokens) {
-          const clean = t.replace(/[^a-zA-Z-]/g, '').toLowerCase().trim();
-          if (clean) words.push(clean);
-        }
+        words.push(token);
       }
-    }
+    });
 
-    if (words.length === 0) {
+    const validWords = words.filter(w => /[a-zA-Z]/.test(w));
+
+    if (validWords.length === 0) {
       wx.showToast({
         title: '请输入有效单词',
         icon: 'error'
@@ -1011,31 +1026,24 @@ Page({
     this.setData({
       isGenerating: true,
       showEmptyState: false,
-      showOutput: false
+      showOutput: false,
+      activePolysemyIndex: -1
     });
     this.startLoadingTips();
-    wx.showLoading({
-      title: 'AI 正在构思故事...',
-      mask: true
-    });
-
-    const apiHost = getApiHost();
-    console.log('[LinkWord] Requesting:', `${apiHost}/api/generate`, { words, wordDefs });
 
     wx.request({
-      url: `${apiHost}/api/generate`,
+      url: `${app.globalData.apiHost}/api/generate`,
       method: 'POST',
       header: {
         'content-type': 'application/json'
       },
       data: {
-        words: words,
-        wordDefs: wordDefs,
+        words: validWords,
         style: this.data.selectedStyle || 'humorous',
         length: this.data.storyLength || 'medium'
       },
       success: (res) => {
-        console.log('[LinkWord] Generate Response status:', res.statusCode, res.data);
+        this.stopLoadingTips();
         if (res.statusCode !== 200) {
           const errMsg = res.data && res.data.error ? res.data.error : `HTTP ${res.statusCode}`;
           wx.showModal({
@@ -1044,61 +1052,35 @@ Page({
             showCancel: false
           });
           this.setData({
+            isGenerating: false,
             showEmptyState: true
           });
           return;
         }
 
-        try {
-          let data = res.data;
-          if (typeof data === 'string') {
-            data = JSON.parse(data);
-          }
-
-          if (!data || (!data.story && (!data.words || data.words.length === 0))) {
-            wx.showModal({
-              title: '解析失败',
-              content: '返回数据格式不完整，请重试。',
-              showCancel: false
-            });
-            this.setData({
-              showEmptyState: true
-            });
-            return;
-          }
-
-          this.renderResult(data);
-          this.saveHistoryItem(words, data);
-          this.setData({
-            showOutput: true
-          });
-          wx.showToast({
-            title: '生成成功！',
-            icon: 'success'
-          });
-        } catch (renderErr) {
-          console.error('[LinkWord] Render error:', renderErr);
-          this.setData({
-            showEmptyState: true
-          });
-        }
+        const data = res.data;
+        this.renderResult(data);
+        this.saveHistoryItem(validWords, data);
+        this.setData({
+          isGenerating: false,
+          showOutput: true
+        });
+        wx.showToast({
+          title: '生成成功！',
+          icon: 'success'
+        });
       },
       fail: (err) => {
-        console.error('[LinkWord] Generation Request Failed:', err);
+        this.stopLoadingTips();
+        console.error('Generation Failed:', err);
         wx.showModal({
           title: '网络失败',
-          content: '生成接口请求失败，请检查微信开发者工具是否开启「不校验合法域名」，或检查手机网络。',
+          content: '生成接口失败，请检查手机网络配置，或检查小程序后台合法域名配置。',
           showCancel: false
         });
         this.setData({
+          isGenerating: false,
           showEmptyState: true
-        });
-      },
-      complete: () => {
-        wx.hideLoading();
-        this.stopLoadingTips();
-        this.setData({
-          isGenerating: false
         });
       }
     });
@@ -1117,7 +1099,8 @@ Page({
     this.setData({
       storyHtml: data.story || "",
       storyTranslation: data.story_translation || "",
-      vocabList: words
+      vocabList: words,
+      activePolysemyIndex: -1
     });
   },
 
@@ -1162,7 +1145,7 @@ Page({
 
     // Remove strong tags or other HTML tags
     const cleanText = rawStory.replace(/<[^>]*>/g, '');
-    const ttsUrl = `${getApiHost()}/api/tts?text=${encodeURIComponent(cleanText)}`;
+    const ttsUrl = `${app.globalData.apiHost}/api/tts?text=${encodeURIComponent(cleanText)}`;
 
     const audioContext = wx.createInnerAudioContext();
     audioContext.src = ttsUrl;

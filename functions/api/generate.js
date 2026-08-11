@@ -18,59 +18,56 @@ export async function onRequestPost(context) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Content-Type': 'application/json; charset=utf-8'
+        'Content-Type': 'application/json'
     };
     
     try {
         const reqData = await request.json().catch(() => ({}));
-        let rawWords = reqData.words || [];
-        const wordDefs = reqData.wordDefs || {};
-
-        if (!rawWords || !Array.isArray(rawWords) || rawWords.length === 0) {
+        const words = reqData.words;
+        if (!words || !Array.isArray(words) || words.length === 0) {
             return new Response(JSON.stringify({ error: 'Missing words array in body' }), {
                 status: 400,
                 headers: corsHeaders
             });
         }
-
-        // Parse polysemous specified meanings if provided in "word (def)", "word:def", "word=def", or wordDefs
-        const parsedWords = [];
-        const specialDefInstructions = [];
-
-        for (const item of rawWords) {
-            if (typeof item === 'string') {
-                const match = item.match(/^([a-zA-Z-]+)([\s:：=\(\[（【].*)?$/);
-                if (match) {
-                    const w = match[1].toLowerCase().trim();
-                    let rest = match[2] ? match[2].trim() : '';
-                    rest = rest.replace(/^[\s:：=\(\[（【]+/, '').replace(/[\)\]）】]+$/, '').trim();
-                    const targetDef = rest || (wordDefs[w] || '');
-                    parsedWords.push(w);
-                    if (targetDef) {
-                        specialDefInstructions.push(`对于单词【${w}】，在故事和例句中必须严格使用其【${targetDef}】的含义，不可使用其他义项！词卡释义请写出【${targetDef}】。`);
-                    }
-                } else {
-                    const cleanW = item.replace(/[^a-zA-Z-]/g, '').toLowerCase().trim();
-                    if (cleanW) parsedWords.push(cleanW);
-                }
-            } else if (item && typeof item === 'object' && item.word) {
-                const w = item.word.toLowerCase().trim();
-                const targetDef = item.targetDef || item.def || wordDefs[w] || '';
-                parsedWords.push(w);
-                if (targetDef) {
-                    specialDefInstructions.push(`对于单词【${w}】，在故事和例句中必须严格使用其【${targetDef}】的含义，不可使用其他义项！词卡释义请写出【${targetDef}】。`);
-                }
-            }
-        }
-
-        const uniqueWords = Array.from(new Set(parsedWords));
-        if (uniqueWords.length === 0) {
-            return new Response(JSON.stringify({ error: 'No valid words found' }), {
+        
+        // Environment Variable priority
+        const GEMINI_KEY = env.GEMINI_KEY || "";
+        
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
                 status: 400,
                 headers: corsHeaders
             });
         }
         
+        const parsedWords = words.map(item => {
+            if (typeof item === 'string') {
+                const match = item.match(/^([a-zA-Z\s-]+)(?:[\(（:：](.+?)[\)）]?)?$/);
+                if (match) {
+                    const rawW = match[1].trim();
+                    const rawMeaning = match[2] ? match[2].trim() : '';
+                    return { word: rawW, specifiedMeaning: rawMeaning };
+                }
+                return { word: item.trim(), specifiedMeaning: '' };
+            } else if (item && typeof item === 'object') {
+                return {
+                    word: (item.word || '').trim(),
+                    specifiedMeaning: (item.meaning || item.specifiedMeaning || '').trim()
+                };
+            }
+            return { word: String(item).trim(), specifiedMeaning: '' };
+        }).filter(w => w.word.length > 0);
+
+        const promptWordItems = parsedWords.map(w => {
+            if (w.specifiedMeaning) {
+                return `${w.word} (【强制指定含义】: ${w.specifiedMeaning})`;
+            }
+            return w.word;
+        });
+
+        const hasSpecifiedMeanings = parsedWords.some(w => w.specifiedMeaning);
+
         const style = reqData.style || 'humorous';
         let styleDesc = "幽默搞笑、情节反转出人意料，让人忍俊不禁";
         if (style === 'scifi') {
@@ -114,24 +111,21 @@ export async function onRequestPost(context) {
         const randomTheme = creativeThemes[Math.floor(Math.random() * creativeThemes.length)];
         const randomSeed = Math.floor(Math.random() * 1000000);
 
-        let specialDefBlock = "";
-        if (specialDefInstructions.length > 0) {
-            specialDefBlock = `\n【用户特别指定的单词义项要求】：\n` + specialDefInstructions.join('\n') + '\n';
-        }
-
         const prompt = `您是英语教学与联想记忆创意大师。
-目标单词列表：[${uniqueWords.join(', ')}]。
+目标单词列表：[${promptWordItems.join(', ')}]。
 整体风格：【${styleDesc}】
 本次灵感场景设定：【${randomTheme}】（创作编号: ${randomSeed}）
 ${lengthNote}
-${specialDefBlock}
-请用通俗易懂的初中词汇，根据上述要求${lengthDesc}，帮助学生通过场景联想牢固记住这几个单词${specialDefInstructions.length > 0 ? '及其指定含义' : ''}。
+${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了【强制指定含义】，故事剧情与例句必须 100% 严格采用该指定释义，绝对严禁使用其他无关的常见释义！' : ''}
+
+请用通俗易懂的初中词汇，根据上述要求${lengthDesc}，帮助学生通过场景联想牢固记住这几个单词。
 
 【关键要求】：
 1. 篇幅长度必须严格符合【${lengthNote}】！
-${specialDefInstructions.length > 0 ? '2. 故事必须精准体现用户指定的单词义项，词卡解释和例句也必须针对指定含义！\n' : ''}3. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
-4. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
-5. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
+2. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
+3. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
+4. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
+5. 针对每个单词，请在 alt_meanings 中列出 2-3 个该词在考试/日常中的【其他不同常用中文含义】，以便学生学习一词多义。
 
 请严格以无任何额外解释、纯 JSON 格式输出：
 {
@@ -139,11 +133,15 @@ ${specialDefInstructions.length > 0 ? '2. 故事必须精准体现用户指定�
   "story_translation": "通俗生动的中文对照翻译",
   "words": [
     {
-      "word": "目标词",
+      "word": "单词原形（例如 plant）",
       "ipa": "美式音标，例如 /'prɪstiːn/",
-      "pos": "词性，例如 adj.",
-      "definition": "10字以内最常用释义（如有指定义项必须匹配指定义项）",
-      "sentence": "5-8个词的极其简单的新例句"
+      "pos": "词性，例如 n.",
+      "definition": "当前故事中采用的中文释义（若有指定含义请严格使用该含义）",
+      "sentence": "5-8个词的极其简单的新例句",
+      "alt_meanings": [
+        { "pos": "n.", "def": "其他常用释义1" },
+        { "pos": "v.", "def": "其他常用释义2" }
+      ]
     }
   ]
 }
@@ -210,7 +208,6 @@ ${specialDefInstructions.length > 0 ? '2. 故事必须精准体现用户指定�
         // 2. Fallback Engine: Google Gemini Flash
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
-        const GEMINI_KEY = env.GEMINI_KEY || "";
 
         if (!GEMINI_KEY) {
             return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
