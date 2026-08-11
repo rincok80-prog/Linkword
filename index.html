@@ -127,22 +127,72 @@
                 <!-- Output Panel -->
                 <section id="output-panel" class="output-panel hidden">
                     <!-- Story Block -->
-                    <div class="story-card">
+                    <div id="story-card" class="story-card">
                         <div class="card-header">
                             <div class="card-title">
-                                <span class="tag">联想故事</span>
-                                <h4>Story Concept</h4>
+                                <span id="story-mode-tag" class="tag">联想故事</span>
+                                <h4 id="story-card-heading">Story Concept</h4>
+                                <span id="quiz-complete-badge" class="quiz-badge-top hidden">🎉 满分掌握</span>
                             </div>
-                            <button id="speak-story-btn" class="tts-btn" title="朗读故事">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                            </button>
+                            <div class="card-actions-group">
+                                <button id="quiz-mode-btn" class="quiz-mode-btn" title="进入故事挖空测验模式">
+                                    <span class="quiz-icon">🧩</span>
+                                    <span id="quiz-mode-btn-text" class="quiz-text">挖空测验</span>
+                                </button>
+                                <button id="speak-story-btn" class="tts-btn" title="朗读故事">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                </button>
+                            </div>
                         </div>
-                        <p id="story-content" class="story-content">
-                            <!-- Story injected here -->
-                        </p>
-                        <p id="story-translation" class="story-translation">
-                            <!-- Translation injected here -->
-                        </p>
+
+                        <!-- Standard Story View -->
+                        <div id="story-standard-view">
+                            <p id="story-content" class="story-content">
+                                <!-- Story injected here -->
+                            </p>
+                            <p id="story-translation" class="story-translation">
+                                <!-- Translation injected here -->
+                            </p>
+                        </div>
+
+                        <!-- Interactive Cloze Quiz View -->
+                        <div id="story-quiz-view" class="quiz-body hidden">
+                            <div class="quiz-instruction-bar">
+                                <span class="quiz-inst-text">💡 点击候选词，填入故事中对应空格：</span>
+                                <button id="quiz-reset-btn" class="quiz-reset-btn" title="重置测验">
+                                    <span class="reset-icon">🔄</span>
+                                    <span class="reset-text">重置</span>
+                                </button>
+                            </div>
+
+                            <div id="cloze-story-container" class="cloze-story-box">
+                                <!-- Cloze story tokens injected here -->
+                            </div>
+
+                            <div id="quiz-bank-section" class="quiz-bank-section">
+                                <div class="bank-header-label">候选用词池（点击填入）：</div>
+                                <div id="quiz-word-bank" class="quiz-word-bank">
+                                    <!-- Candidate pills injected here -->
+                                </div>
+                            </div>
+
+                            <div id="quiz-success-card" class="quiz-success-card hidden">
+                                <div class="success-header">
+                                    <span class="success-icon">🎉</span>
+                                    <span class="success-title">太棒了！全对通关！</span>
+                                </div>
+                                <p class="success-desc">你已牢固掌握所有核心单词在真实语境中的搭配与用法！</p>
+                                <div class="success-actions">
+                                    <button id="quiz-replay-btn" class="success-btn-replay">🔄 再测一次</button>
+                                    <button id="quiz-view-story-btn" class="success-btn-story">📖 返回故事全文</button>
+                                </div>
+                            </div>
+
+                            <div id="quiz-trans-section" class="quiz-trans-section hidden">
+                                <div class="quiz-trans-label">中文故事对照</div>
+                                <p id="quiz-story-translation" class="story-translation"></p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Vocabulary Detail Grid -->

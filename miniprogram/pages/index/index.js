@@ -89,7 +89,12 @@ Page({
     storyLength: "short",
     storyLengthInfo: { icon: '⚡', title: '极简速记', desc: '1-2 句' },
     showLengthSlider: false,
-    activePolysemyIndex: -1
+    activePolysemyIndex: -1,
+    isQuizMode: false,
+    clozeTokens: [],
+    quizWordBank: [],
+    activeBlankIndex: 0,
+    quizCompleted: false
   },
 
   vocabSearchTimer: null,
@@ -1036,6 +1041,219 @@ Page({
     });
   },
 
+  toggleQuizMode() {
+    if (!this.data.isQuizMode) {
+      this.initQuiz();
+    } else {
+      this.setData({
+        isQuizMode: false
+      });
+    }
+  },
+
+  initQuiz() {
+    const rawHtml = this.data.storyHtml || '';
+    if (!rawHtml) return;
+
+    // Extract target words from <strong>...</strong> or from vocabList
+    const strongRegex = /<strong>(.*?)<\/strong>/gi;
+    let tokens = [];
+    let lastIdx = 0;
+    let blankIdx = 0;
+    let targetWords = [];
+    let match;
+
+    while ((match = strongRegex.exec(rawHtml)) !== null) {
+      const start = match.index;
+      const end = strongRegex.lastIndex;
+      if (start > lastIdx) {
+        tokens.push({ type: 'text', text: rawHtml.substring(lastIdx, start).replace(/<[^>]+>/g, '') });
+      }
+      const targetWord = match[1].trim();
+      targetWords.push(targetWord);
+      tokens.push({
+        type: 'blank',
+        blankIndex: blankIdx,
+        targetWord: targetWord,
+        filledWord: null,
+        isCorrect: false
+      });
+      blankIdx++;
+      lastIdx = end;
+    }
+
+    if (lastIdx < rawHtml.length) {
+      tokens.push({ type: 'text', text: rawHtml.substring(lastIdx).replace(/<[^>]+>/g, '') });
+    }
+
+    // Fallback: If no <strong> tags found, match from vocabList
+    if (blankIdx === 0 && this.data.vocabList && this.data.vocabList.length > 0) {
+      tokens = [];
+      blankIdx = 0;
+      targetWords = [];
+      const plainText = rawHtml.replace(/<[^>]+>/g, '');
+      const wordsToFind = this.data.vocabList.map(v => v.word.trim()).filter(Boolean);
+      const pattern = new RegExp(`\\b(${wordsToFind.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
+      
+      let pLast = 0;
+      let pMatch;
+      while ((pMatch = pattern.exec(plainText)) !== null) {
+        const pStart = pMatch.index;
+        const pEnd = pattern.lastIndex;
+        if (pStart > pLast) {
+          tokens.push({ type: 'text', text: plainText.substring(pLast, pStart) });
+        }
+        const tw = pMatch[1].trim();
+        targetWords.push(tw);
+        tokens.push({
+          type: 'blank',
+          blankIndex: blankIdx,
+          targetWord: tw,
+          filledWord: null,
+          isCorrect: false
+        });
+        blankIdx++;
+        pLast = pEnd;
+      }
+      if (pLast < plainText.length) {
+        tokens.push({ type: 'text', text: plainText.substring(pLast) });
+      }
+    }
+
+    // Create Shuffled Word Bank
+    const bank = targetWords.map((word, i) => ({
+      id: i,
+      word: word,
+      used: false
+    })).sort(() => Math.random() - 0.5);
+
+    this.setData({
+      isQuizMode: true,
+      clozeTokens: tokens,
+      quizWordBank: bank,
+      activeBlankIndex: 0,
+      quizCompleted: false
+    });
+  },
+
+  onBlankSlotTap(e) {
+    const idx = parseInt(e.currentTarget.dataset.index, 10);
+    const tokens = [...this.data.clozeTokens];
+    const targetToken = tokens.find(t => t.type === 'blank' && t.blankIndex === idx);
+    
+    if (targetToken && targetToken.filledWord) {
+      // Return filled word back to word bank
+      const oldWord = targetToken.filledWord;
+      targetToken.filledWord = null;
+      targetToken.isCorrect = false;
+
+      const bank = this.data.quizWordBank.map(item => {
+        if (item.word.toLowerCase() === oldWord.toLowerCase() && item.used) {
+          return { ...item, used: false };
+        }
+        return item;
+      });
+
+      this.setData({
+        clozeTokens: tokens,
+        quizWordBank: bank,
+        activeBlankIndex: idx,
+        quizCompleted: false
+      });
+      return;
+    }
+
+    this.setData({
+      activeBlankIndex: idx
+    });
+  },
+
+  onSelectQuizOption(e) {
+    const id = parseInt(e.currentTarget.dataset.id, 10);
+    const word = (e.currentTarget.dataset.word || '').trim();
+    if (!word) return;
+
+    const bank = [...this.data.quizWordBank];
+    const bankItem = bank.find(b => b.id === id);
+    if (!bankItem || bankItem.used) return;
+
+    const tokens = [...this.data.clozeTokens];
+    let currentIdx = this.data.activeBlankIndex;
+
+    // Find the blank slot to fill
+    let slot = tokens.find(t => t.type === 'blank' && t.blankIndex === currentIdx && !t.filledWord);
+    if (!slot) {
+      // find first empty blank
+      slot = tokens.find(t => t.type === 'blank' && !t.filledWord);
+      if (slot) {
+        currentIdx = slot.blankIndex;
+      }
+    }
+
+    if (!slot) return;
+
+    const isMatch = slot.targetWord.toLowerCase() === word.toLowerCase();
+    slot.filledWord = word;
+    slot.isCorrect = isMatch;
+    bankItem.used = true;
+
+    // Check if wrong
+    if (!isMatch) {
+      try {
+        wx.vibrateShort && wx.vibrateShort({ type: 'medium' });
+      } catch (err) {}
+      wx.showToast({
+        title: '位置不对哦，再想想~',
+        icon: 'none',
+        duration: 1200
+      });
+      // automatically pop back after 600ms if wrong
+      this.setData({
+        clozeTokens: tokens,
+        quizWordBank: bank,
+        activeBlankIndex: currentIdx
+      });
+
+      setTimeout(() => {
+        slot.filledWord = null;
+        slot.isCorrect = false;
+        bankItem.used = false;
+        this.setData({
+          clozeTokens: [...tokens],
+          quizWordBank: [...bank]
+        });
+      }, 700);
+      return;
+    }
+
+    // Correct! Short haptic feedback
+    try {
+      wx.vibrateShort && wx.vibrateShort({ type: 'light' });
+    } catch (err) {}
+
+    // Find next empty blank
+    const nextEmpty = tokens.find(t => t.type === 'blank' && !t.filledWord && t.blankIndex !== currentIdx);
+    const nextBlankIdx = nextEmpty ? nextEmpty.blankIndex : -1;
+
+    // Check if all blanks are correctly filled
+    const allFilledCorrect = tokens.filter(t => t.type === 'blank').every(t => t.filledWord && t.isCorrect);
+
+    this.setData({
+      clozeTokens: tokens,
+      quizWordBank: bank,
+      activeBlankIndex: nextBlankIdx,
+      quizCompleted: allFilledCorrect
+    });
+
+    if (allFilledCorrect) {
+      wx.showToast({
+        title: '🎉 太棒了！全对通关！',
+        icon: 'success',
+        duration: 2000
+      });
+    }
+  },
+
   // Main generator trigger
   handleGeneration() {
     if (this.data.isGenerating) return;
@@ -1153,7 +1371,11 @@ Page({
       storyHtml: data.story || "",
       storyTranslation: data.story_translation || "",
       vocabList: words,
-      activePolysemyIndex: -1
+      activePolysemyIndex: -1,
+      isQuizMode: false,
+      quizCompleted: false,
+      clozeTokens: [],
+      quizWordBank: []
     });
   },
 

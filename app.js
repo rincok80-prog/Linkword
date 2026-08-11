@@ -82,6 +82,24 @@ document.addEventListener('DOMContentLoaded', () => {
         vocabSelectedBadge: document.getElementById('vocab-selected-badge'),
         vocabClearSelectedBtn: document.getElementById('vocab-clear-selected-btn'),
         vocabApplyBtn: document.getElementById('vocab-apply-btn'),
+
+        // Quiz Challenge Elements
+        quizModeBtn: document.getElementById('quiz-mode-btn'),
+        quizModeBtnText: document.getElementById('quiz-mode-btn-text'),
+        storyModeTag: document.getElementById('story-mode-tag'),
+        storyCardHeading: document.getElementById('story-card-heading'),
+        quizCompleteBadge: document.getElementById('quiz-complete-badge'),
+        storyStandardView: document.getElementById('story-standard-view'),
+        storyQuizView: document.getElementById('story-quiz-view'),
+        quizResetBtn: document.getElementById('quiz-reset-btn'),
+        clozeStoryContainer: document.getElementById('cloze-story-container'),
+        quizBankSection: document.getElementById('quiz-bank-section'),
+        quizWordBank: document.getElementById('quiz-word-bank'),
+        quizSuccessCard: document.getElementById('quiz-success-card'),
+        quizReplayBtn: document.getElementById('quiz-replay-btn'),
+        quizViewStoryBtn: document.getElementById('quiz-view-story-btn'),
+        quizTransSection: document.getElementById('quiz-trans-section'),
+        quizStoryTranslation: document.getElementById('quiz-story-translation'),
     };
 
     // App State
@@ -98,7 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedImageMime: null,
         selectedVocabMap: {},
         vocabSearchQuery: '',
-        storyLength: localStorage.getItem('storyLength') || 'short'
+        storyLength: localStorage.getItem('storyLength') || 'short',
+        isQuizMode: false,
+        clozeTokens: [],
+        quizWordBank: [],
+        activeBlankIndex: 0,
+        quizCompleted: false,
+        currentResult: null
     };
 
     // Initialize Application
@@ -446,6 +470,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 speakText(plainText);
             }
         });
+
+        // Quiz Challenge Mode Listeners
+        if (elements.quizModeBtn) {
+            elements.quizModeBtn.addEventListener('click', toggleQuizMode);
+        }
+        if (elements.quizResetBtn) {
+            elements.quizResetBtn.addEventListener('click', initQuiz);
+        }
+        if (elements.quizReplayBtn) {
+            elements.quizReplayBtn.addEventListener('click', initQuiz);
+        }
+        if (elements.quizViewStoryBtn) {
+            elements.quizViewStoryBtn.addEventListener('click', toggleQuizMode);
+        }
 
         // History list selection
         elements.historyList.addEventListener('click', (e) => {
@@ -1030,8 +1068,273 @@ JSON Schema 结构：
             elements.vocabGrid.appendChild(card);
         });
 
+        state.currentResult = result;
+        state.isQuizMode = false;
+        state.quizCompleted = false;
+        updateQuizViewUI();
+
         elements.emptyState.classList.add('hidden');
         elements.outputPanel.classList.remove('hidden');
+    }
+
+    // ==========================================
+    // 🧩 Interactive Cloze Quiz Functions (Web)
+    // ==========================================
+    function toggleQuizMode() {
+        state.isQuizMode = !state.isQuizMode;
+        if (state.isQuizMode) {
+            initQuiz();
+        } else {
+            updateQuizViewUI();
+        }
+    }
+
+    function initQuiz() {
+        const rawHtml = state.currentResult ? state.currentResult.story : elements.storyContent.innerHTML;
+        if (!rawHtml) return;
+
+        state.isQuizMode = true;
+        state.quizCompleted = false;
+
+        const strongRegex = /<strong>(.*?)<\/strong>/gi;
+        let tokens = [];
+        let lastIdx = 0;
+        let blankIdx = 0;
+        let targetWords = [];
+        let match;
+
+        while ((match = strongRegex.exec(rawHtml)) !== null) {
+            const start = match.index;
+            const end = strongRegex.lastIndex;
+            if (start > lastIdx) {
+                tokens.push({ type: 'text', text: rawHtml.substring(lastIdx, start).replace(/<[^>]+>/g, '') });
+            }
+            const targetWord = match[1].trim();
+            targetWords.push(targetWord);
+            tokens.push({
+                type: 'blank',
+                blankIndex: blankIdx,
+                targetWord: targetWord,
+                filledWord: null,
+                isCorrect: false
+            });
+            blankIdx++;
+            lastIdx = end;
+        }
+
+        if (lastIdx < rawHtml.length) {
+            tokens.push({ type: 'text', text: rawHtml.substring(lastIdx).replace(/<[^>]+>/g, '') });
+        }
+
+        // Fallback: If no <strong> tags found, match from current words
+        if (blankIdx === 0 && state.currentResult && state.currentResult.words) {
+            tokens = [];
+            blankIdx = 0;
+            targetWords = [];
+            const plainText = rawHtml.replace(/<[^>]+>/g, '');
+            const wordsToFind = state.currentResult.words.map(v => v.word.trim()).filter(Boolean);
+            const pattern = new RegExp(`\\b(${wordsToFind.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
+            
+            let pLast = 0;
+            let pMatch;
+            while ((pMatch = pattern.exec(plainText)) !== null) {
+                const pStart = pMatch.index;
+                const pEnd = pattern.lastIndex;
+                if (pStart > pLast) {
+                    tokens.push({ type: 'text', text: plainText.substring(pLast, pStart) });
+                }
+                const tw = pMatch[1].trim();
+                targetWords.push(tw);
+                tokens.push({
+                    type: 'blank',
+                    blankIndex: blankIdx,
+                    targetWord: tw,
+                    filledWord: null,
+                    isCorrect: false
+                });
+                blankIdx++;
+                pLast = pEnd;
+            }
+            if (pLast < plainText.length) {
+                tokens.push({ type: 'text', text: plainText.substring(pLast) });
+            }
+        }
+
+        // Create Shuffled Word Bank
+        state.clozeTokens = tokens;
+        state.quizWordBank = targetWords.map((word, i) => ({
+            id: i,
+            word: word,
+            used: false
+        })).sort(() => Math.random() - 0.5);
+        state.activeBlankIndex = 0;
+
+        updateQuizViewUI();
+        renderClozeTokens();
+        renderQuizWordBank();
+    }
+
+    function updateQuizViewUI() {
+        if (!elements.storyStandardView || !elements.storyQuizView) return;
+
+        if (state.isQuizMode) {
+            elements.storyStandardView.classList.add('hidden');
+            elements.storyQuizView.classList.remove('hidden');
+            elements.quizModeBtn.classList.add('active');
+            elements.quizModeBtnText.textContent = '看故事';
+            elements.storyModeTag.textContent = '挖空自测';
+            elements.storyCardHeading.textContent = 'Cloze Challenge';
+            
+            if (elements.quizStoryTranslation && state.currentResult) {
+                elements.quizStoryTranslation.textContent = state.currentResult.story_translation || '';
+            }
+
+            if (state.quizCompleted) {
+                elements.quizSuccessCard.classList.remove('hidden');
+                elements.quizBankSection.classList.add('hidden');
+                elements.quizTransSection.classList.remove('hidden');
+                elements.quizCompleteBadge.classList.remove('hidden');
+            } else {
+                elements.quizSuccessCard.classList.add('hidden');
+                elements.quizBankSection.classList.remove('hidden');
+                elements.quizTransSection.classList.add('hidden');
+                elements.quizCompleteBadge.classList.add('hidden');
+            }
+        } else {
+            elements.storyStandardView.classList.remove('hidden');
+            elements.storyQuizView.classList.add('hidden');
+            elements.quizModeBtn.classList.remove('active');
+            elements.quizModeBtnText.textContent = '挖空测验';
+            elements.storyModeTag.textContent = '联想故事';
+            elements.storyCardHeading.textContent = 'Story Concept';
+            elements.quizCompleteBadge.classList.add('hidden');
+        }
+    }
+
+    function renderClozeTokens() {
+        if (!elements.clozeStoryContainer) return;
+        elements.clozeStoryContainer.innerHTML = '';
+
+        state.clozeTokens.forEach(token => {
+            if (token.type === 'text') {
+                const span = document.createElement('span');
+                span.className = 'cloze-plain-text';
+                span.textContent = token.text;
+                elements.clozeStoryContainer.appendChild(span);
+            } else if (token.type === 'blank') {
+                const slot = document.createElement('span');
+                let statusClass = token.filledWord ? (token.isCorrect ? 'slot-correct' : 'slot-wrong') : 'slot-empty';
+                let focusClass = state.activeBlankIndex === token.blankIndex ? 'slot-focused' : '';
+                slot.className = `cloze-blank-slot ${statusClass} ${focusClass}`;
+                slot.dataset.index = token.blankIndex;
+
+                if (token.filledWord) {
+                    slot.innerHTML = `<span class="slot-filled-word">${token.filledWord}</span>${token.isCorrect ? ' <span class="slot-check-icon">✓</span>' : ''}`;
+                } else {
+                    slot.innerHTML = `<span class="slot-placeholder">[${token.blankIndex + 1}] 待填</span>`;
+                }
+
+                slot.addEventListener('click', () => {
+                    onBlankSlotClick(token.blankIndex);
+                });
+
+                elements.clozeStoryContainer.appendChild(slot);
+            }
+        });
+    }
+
+    function renderQuizWordBank() {
+        if (!elements.quizWordBank) return;
+        elements.quizWordBank.innerHTML = '';
+
+        state.quizWordBank.forEach(item => {
+            const pill = document.createElement('button');
+            pill.className = `quiz-word-pill ${item.used ? 'used' : ''}`;
+            pill.textContent = item.word;
+            pill.dataset.id = item.id;
+            pill.dataset.word = item.word;
+
+            pill.addEventListener('click', () => {
+                onQuizWordPillClick(item.id, item.word);
+            });
+
+            elements.quizWordBank.appendChild(pill);
+        });
+    }
+
+    function onBlankSlotClick(blankIndex) {
+        const targetToken = state.clozeTokens.find(t => t.type === 'blank' && t.blankIndex === blankIndex);
+        if (targetToken && targetToken.filledWord) {
+            const oldWord = targetToken.filledWord;
+            targetToken.filledWord = null;
+            targetToken.isCorrect = false;
+
+            state.quizWordBank.forEach(item => {
+                if (item.word.toLowerCase() === oldWord.toLowerCase() && item.used) {
+                    item.used = false;
+                }
+            });
+
+            state.activeBlankIndex = blankIndex;
+            state.quizCompleted = false;
+            updateQuizViewUI();
+            renderClozeTokens();
+            renderQuizWordBank();
+            return;
+        }
+
+        state.activeBlankIndex = blankIndex;
+        renderClozeTokens();
+    }
+
+    function onQuizWordPillClick(id, word) {
+        const bankItem = state.quizWordBank.find(b => b.id === id);
+        if (!bankItem || bankItem.used) return;
+
+        let currentIdx = state.activeBlankIndex;
+        let slot = state.clozeTokens.find(t => t.type === 'blank' && t.blankIndex === currentIdx && !t.filledWord);
+        if (!slot) {
+            slot = state.clozeTokens.find(t => t.type === 'blank' && !t.filledWord);
+            if (slot) {
+                currentIdx = slot.blankIndex;
+            }
+        }
+
+        if (!slot) return;
+
+        const isMatch = slot.targetWord.toLowerCase() === word.toLowerCase();
+        slot.filledWord = word;
+        slot.isCorrect = isMatch;
+        bankItem.used = true;
+
+        if (!isMatch) {
+            showToast('位置不对哦，再想想~', 'warning');
+            renderClozeTokens();
+            renderQuizWordBank();
+
+            setTimeout(() => {
+                slot.filledWord = null;
+                slot.isCorrect = false;
+                bankItem.used = false;
+                renderClozeTokens();
+                renderQuizWordBank();
+            }, 700);
+            return;
+        }
+
+        const nextEmpty = state.clozeTokens.find(t => t.type === 'blank' && !t.filledWord && t.blankIndex !== currentIdx);
+        state.activeBlankIndex = nextEmpty ? nextEmpty.blankIndex : -1;
+
+        const allFilledCorrect = state.clozeTokens.filter(t => t.type === 'blank').every(t => t.filledWord && t.isCorrect);
+        state.quizCompleted = allFilledCorrect;
+
+        updateQuizViewUI();
+        renderClozeTokens();
+        renderQuizWordBank();
+
+        if (allFilledCorrect) {
+            showToast('🎉 太棒了！全对通关！', 'success');
+        }
     }
 
     // Render historical lists in sidebar

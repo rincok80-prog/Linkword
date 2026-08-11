@@ -135,13 +135,20 @@
     <!-- Output Panel -->
     <view class="output-panel" wx:if="{{showOutput && !isGenerating}}">
       <!-- Story Card -->
-      <view class="story-card">
+      <view class="story-card {{isQuizMode ? 'quiz-active' : ''}}">
         <view class="story-header">
-          <text class="story-title">联想记忆故事</text>
+          <view class="story-title-group">
+            <text class="story-title">{{isQuizMode ? '🧩 故事挖空自测' : '联想记忆故事'}}</text>
+            <text class="quiz-badge-top" wx:if="{{isQuizMode && quizCompleted}}">🎉 满分掌握</text>
+          </view>
           <view class="story-actions-group">
+            <view class="quiz-mode-btn {{isQuizMode ? 'active' : ''}}" bindtap="toggleQuizMode">
+              <text class="quiz-icon">🧩</text>
+              <text class="quiz-text">{{isQuizMode ? '读故事' : '挖空测验'}}</text>
+            </view>
             <view class="speak-btn {{isStorySpeaking ? 'speaking' : ''}}" bindtap="toggleSpeakStory">
               <text class="speak-icon">🔊</text>
-              <text class="speak-text">{{isStorySpeaking ? '播放中...' : '朗读故事'}}</text>
+              <text class="speak-text">{{isStorySpeaking ? '播放中' : '朗读'}}</text>
             </view>
             <button class="share-story-btn" open-type="share">
               <text class="share-icon">📤</text>
@@ -149,9 +156,63 @@
             </button>
           </view>
         </view>
-        <view class="story-body">
+
+        <!-- Standard Story View -->
+        <view class="story-body" wx:if="{{!isQuizMode}}">
           <rich-text class="story-content" nodes="{{storyHtml}}"></rich-text>
           <text class="story-translation">{{storyTranslation}}</text>
+        </view>
+
+        <!-- Interactive Cloze Quiz View -->
+        <view class="quiz-body" wx:else>
+          <view class="quiz-instruction-bar">
+            <text class="quiz-inst-text">💡 点击候选词，填入故事中对应空格：</text>
+            <view class="quiz-reset-btn" bindtap="initQuiz">
+              <text class="reset-icon">🔄</text>
+              <text class="reset-text">重置</text>
+            </view>
+          </view>
+
+          <!-- Cloze Story Paragraph -->
+          <view class="cloze-story-box">
+            <block wx:for="{{clozeTokens}}" wx:key="index">
+              <text wx:if="{{item.type === 'text'}}" class="cloze-plain-text">{{item.text}}</text>
+              <view wx:else class="cloze-blank-slot {{item.filledWord ? (item.isCorrect ? 'slot-correct' : 'slot-wrong') : 'slot-empty'}} {{activeBlankIndex === item.blankIndex ? 'slot-focused' : ''}}" data-index="{{item.blankIndex}}" bindtap="onBlankSlotTap">
+                <text wx:if="{{item.filledWord}}" class="slot-filled-word">{{item.filledWord}}</text>
+                <text wx:else class="slot-placeholder">[{{item.blankIndex + 1}}] 待填</text>
+                <text wx:if="{{item.filledWord && item.isCorrect}}" class="slot-check-icon">✓</text>
+              </view>
+            </block>
+          </view>
+
+          <!-- Word Bank (Candidate Pills) -->
+          <view class="quiz-bank-section" wx:if="{{!quizCompleted}}">
+            <view class="bank-header-label">候选用词池（点击填入）：</view>
+            <view class="quiz-word-bank">
+              <view class="quiz-word-pill {{item.used ? 'used' : ''}}" wx:for="{{quizWordBank}}" wx:key="id" data-id="{{item.id}}" data-word="{{item.word}}" bindtap="onSelectQuizOption">
+                <text class="pill-word-text">{{item.word}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- Celebration Overlay / Card -->
+          <view class="quiz-success-card" wx:if="{{quizCompleted}}">
+            <view class="success-header">
+              <text class="success-icon">🎉</text>
+              <text class="success-title">太棒了！全对通关！</text>
+            </view>
+            <text class="success-desc">你已牢固掌握所有核心单词在真实语境中的搭配与用法！</text>
+            <view class="success-actions">
+              <view class="success-btn-replay" bindtap="initQuiz">🔄 再测一次</view>
+              <view class="success-btn-story" bindtap="toggleQuizMode">📖 返回故事全文</view>
+            </view>
+          </view>
+
+          <!-- Translation in Quiz Mode -->
+          <view class="quiz-trans-section" wx:if="{{quizCompleted}}">
+            <view class="quiz-trans-label">中文故事对照</view>
+            <text class="story-translation">{{storyTranslation}}</text>
+          </view>
         </view>
       </view>
 
