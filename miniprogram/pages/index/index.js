@@ -1,6 +1,15 @@
 // pages/index/index.js
-const app = getApp();
 const { VOCAB_DATABASE } = require('../../utils/vocab_db.js');
+
+function getApiHost() {
+  try {
+    const app = getApp();
+    if (app && app.globalData && app.globalData.apiHost) {
+      return app.globalData.apiHost;
+    }
+  } catch (e) {}
+  return 'https://linkword.pages.dev';
+}
 
 let allVocabPool = [];
 
@@ -843,7 +852,7 @@ Page({
       else if (filePath.endsWith('.gif')) mime = 'image/gif';
 
       wx.request({
-        url: `${app.globalData.apiHost}/api/ocr`,
+        url: `${getApiHost()}/api/ocr`,
         method: 'POST',
         header: {
           'content-type': 'application/json'
@@ -1004,11 +1013,16 @@ Page({
       showOutput: false
     });
     this.startLoadingTips();
+    wx.showLoading({
+      title: 'AI 正在构思故事...',
+      mask: true
+    });
 
-    console.log('[LinkWord] Requesting:', `${app.globalData.apiHost}/api/generate`, { words, wordDefs });
+    const apiHost = getApiHost();
+    console.log('[LinkWord] Requesting:', `${apiHost}/api/generate`, { words, wordDefs });
 
     wx.request({
-      url: `${app.globalData.apiHost}/api/generate`,
+      url: `${apiHost}/api/generate`,
       method: 'POST',
       header: {
         'content-type': 'application/json'
@@ -1080,6 +1094,7 @@ Page({
         });
       },
       complete: () => {
+        wx.hideLoading();
         this.stopLoadingTips();
         this.setData({
           isGenerating: false
@@ -1146,7 +1161,7 @@ Page({
 
     // Remove strong tags or other HTML tags
     const cleanText = rawStory.replace(/<[^>]*>/g, '');
-    const ttsUrl = `${app.globalData.apiHost}/api/tts?text=${encodeURIComponent(cleanText)}`;
+    const ttsUrl = `${getApiHost()}/api/tts?text=${encodeURIComponent(cleanText)}`;
 
     const audioContext = wx.createInnerAudioContext();
     audioContext.src = ttsUrl;
