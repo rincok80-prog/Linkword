@@ -144,6 +144,64 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
         // Sole Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
         let lastErr = null;
 
+function repairAndParseJson(str) {
+    let clean = (str || "").trim();
+    if (clean.startsWith("```")) {
+        clean = clean.replace(/^```[a-zA-Z]*\n?/, "");
+    }
+    if (clean.endsWith("```")) {
+        clean = clean.replace(/```$/, "");
+    }
+    clean = clean.trim();
+
+    const firstBrace = clean.indexOf('{');
+    if (firstBrace !== -1) {
+        clean = clean.substring(firstBrace);
+    }
+    const lastBrace = clean.lastIndexOf('}');
+    if (lastBrace !== -1 && lastBrace > firstBrace) {
+        try {
+            return JSON.parse(clean.substring(0, lastBrace + 1));
+        } catch (e) {}
+    }
+
+    try {
+        return JSON.parse(clean);
+    } catch (e) {
+        let repaired = clean.replace(/[,:\s]+$/, "");
+        let inString = false;
+        for (let i = 0; i < repaired.length; i++) {
+            if (repaired[i] === '"' && (i === 0 || repaired[i-1] !== '\\')) {
+                inString = !inString;
+            }
+        }
+        if (inString) repaired += '"';
+        repaired = repaired.replace(/[,:\s]+$/, "");
+
+        let stack = [];
+        inString = false;
+        for (let i = 0; i < repaired.length; i++) {
+            const ch = repaired[i];
+            if (ch === '"' && (i === 0 || repaired[i-1] !== '\\')) {
+                inString = !inString;
+            } else if (!inString) {
+                if (ch === '{' || ch === '[') stack.push(ch);
+                else if (ch === '}' && stack[stack.length - 1] === '{') stack.pop();
+                else if (ch === ']' && stack[stack.length - 1] === '[') stack.pop();
+            }
+        }
+
+        while (stack.length > 0) {
+            const opening = stack.pop();
+            repaired = repaired.replace(/[,:\s]+$/, "");
+            if (opening === '{') repaired += '}';
+            else if (opening === '[') repaired += ']';
+        }
+
+        return JSON.parse(repaired);
+    }
+}
+
         for (let attempt = 1; attempt <= 2; attempt++) {
             try {
                 const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
@@ -164,7 +222,7 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                                 content: prompt
                             }
                         ],
-                        max_tokens: 380,
+                        max_tokens: 1200,
                         temperature: 0.85,
                         top_p: 0.9
                     })
@@ -173,25 +231,9 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
                 if (wechatResp.ok) {
                     const wechatJson = await wechatResp.json();
                     let rawText = wechatJson?.choices?.[0]?.message?.content || "";
-                    rawText = rawText.trim();
-                    
-                    if (rawText.startsWith("```")) {
-                        rawText = rawText.replace(/^```[a-zA-Z]*\n?/, "");
-                    }
-                    if (rawText.endsWith("```")) {
-                        rawText = rawText.replace(/```$/, "");
-                    }
-                    rawText = rawText.trim();
+                    const parsedObj = repairAndParseJson(rawText);
 
-                    const firstBrace = rawText.indexOf('{');
-                    const lastBrace = rawText.lastIndexOf('}');
-                    if (firstBrace !== -1 && lastBrace !== -1) {
-                        rawText = rawText.substring(firstBrace, lastBrace + 1);
-                    }
-
-                    JSON.parse(rawText);
-
-                    return new Response(rawText, {
+                    return new Response(JSON.stringify(parsedObj), {
                         status: 200,
                         headers: corsHeaders
                     });
