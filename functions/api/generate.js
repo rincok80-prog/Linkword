@@ -139,23 +139,53 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
   ]
 }`;
 
-        // 1. Primary Engine: Google Gemini Flash (Blazing fast ~1.2s response time)
+        const SILICON_KEY = env.SILICONFLOW_KEY || "sk-caucwtkqzlmewpazllitwirjdyvfvqtmyusvwffqvtjhtprm";
+        const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
 
+        const tasks = [];
+
+        // Engine 1: SiliconFlow Qwen2.5-7B-Instruct (⚡ Ultra-fast 1.8s response)
+        if (SILICON_KEY) {
+            tasks.push((async () => {
+                const resp = await fetch("https://api.siliconflow.cn/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${SILICON_KEY}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "Qwen/Qwen2.5-7B-Instruct",
+                        messages: [{ role: "user", content: prompt }],
+                        temperature: 0.8,
+                        max_tokens: maxTokens,
+                        response_format: { type: "json_object" }
+                    })
+                });
+                if (!resp.ok) throw new Error(`SiliconFlow HTTP ${resp.status}`);
+                const data = await resp.json();
+                let raw = data?.choices?.[0]?.message?.content || "";
+                raw = raw.trim();
+                const firstBrace = raw.indexOf('{');
+                const lastBrace = raw.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    raw = raw.substring(firstBrace, lastBrace + 1);
+                }
+                JSON.parse(raw);
+                return raw;
+            })());
+        }
+
+        // Engine 2: Google Gemini 1.5 Flash (⚡ ~1.2s response)
         if (GEMINI_KEY) {
-            try {
+            tasks.push((async () => {
                 const geminiUrl = `https://${apiHost}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-                
-                const response = await fetch(geminiUrl, {
+                const resp = await fetch(geminiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [{ text: prompt }]
-                            }
-                        ],
+                        contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: {
                             responseMimeType: "application/json",
                             temperature: 0.8,
@@ -163,93 +193,69 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
                         }
                     })
                 });
-
-                if (response.ok) {
-                    const respText = await response.text();
-                    const data = JSON.parse(respText);
-                    let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    
-                    jsonText = jsonText.trim();
-                    const firstBrace = jsonText.indexOf('{');
-                    const lastBrace = jsonText.lastIndexOf('}');
-                    if (firstBrace !== -1 && lastBrace !== -1) {
-                        jsonText = jsonText.substring(firstBrace, lastBrace + 1);
-                    }
-                    
-                    // Validate JSON
-                    JSON.parse(jsonText);
-                    
-                    return new Response(jsonText, {
-                        status: 200,
-                        headers: corsHeaders
-                    });
-                }
-            } catch (geminiErr) {
-                console.warn("Gemini Engine fallback to WeChat AI:", geminiErr);
-            }
-        }
-
-        // 2. Secondary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
-        const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
-        
-        try {
-            const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${WECHAT_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "Deepseek-v4-flash",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are a creative English learning assistant. Always generate unique, imaginative, and distinct stories on every single request. Output ONLY pure, valid JSON format strings."
-                        },
-                        {
-                            role: "user",
-                            content: prompt
-                        }
-                    ],
-                    temperature: 0.85,
-                    max_tokens: 450
-                })
-            });
-
-            if (wechatResp.ok) {
-                const wechatJson = await wechatResp.json();
-                let rawText = wechatJson?.choices?.[0]?.message?.content || "";
-                rawText = rawText.trim();
-                
-                if (rawText.startsWith("```")) {
-                    rawText = rawText.replace(/^```[a-zA-Z]*\n?/, "");
-                }
-                if (rawText.endsWith("```")) {
-                    rawText = rawText.replace(/```$/, "");
-                }
-                rawText = rawText.trim();
-
-                const firstBrace = rawText.indexOf('{');
-                const lastBrace = rawText.lastIndexOf('}');
+                if (!resp.ok) throw new Error(`Gemini HTTP ${resp.status}`);
+                const data = await resp.json();
+                let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                raw = raw.trim();
+                const firstBrace = raw.indexOf('{');
+                const lastBrace = raw.lastIndexOf('}');
                 if (firstBrace !== -1 && lastBrace !== -1) {
-                    rawText = rawText.substring(firstBrace, lastBrace + 1);
+                    raw = raw.substring(firstBrace, lastBrace + 1);
                 }
-
-                JSON.parse(rawText);
-
-                return new Response(rawText, {
-                    status: 200,
-                    headers: corsHeaders
-                });
-            }
-        } catch (wechatErr) {
-            console.error("WeChat AI Engine error:", wechatErr);
+                JSON.parse(raw);
+                return raw;
+            })());
         }
 
-        return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
-            status: 500,
-            headers: corsHeaders
-        });
+        // Engine 3: WeChat AI Deepseek-v4-flash
+        if (WECHAT_TOKEN) {
+            tasks.push((async () => {
+                const resp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${WECHAT_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "Deepseek-v4-flash",
+                        messages: [
+                            { role: "system", content: "You are an English learning assistant. Output ONLY valid JSON strings." },
+                            { role: "user", content: prompt }
+                        ],
+                        temperature: 0.85,
+                        max_tokens: maxTokens
+                    })
+                });
+                if (!resp.ok) throw new Error(`WeChat AI HTTP ${resp.status}`);
+                const data = await resp.json();
+                let raw = data?.choices?.[0]?.message?.content || "";
+                raw = raw.trim();
+                if (raw.startsWith("```")) raw = raw.replace(/^```[a-zA-Z]*\n?/, "");
+                if (raw.endsWith("```")) raw = raw.replace(/```$/, "");
+                raw = raw.trim();
+                const firstBrace = raw.indexOf('{');
+                const lastBrace = raw.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    raw = raw.substring(firstBrace, lastBrace + 1);
+                }
+                JSON.parse(raw);
+                return raw;
+            })());
+        }
+
+        try {
+            const fastestWinnerJson = await Promise.any(tasks);
+            return new Response(fastestWinnerJson, {
+                status: 200,
+                headers: corsHeaders
+            });
+        } catch (anyErr) {
+            console.error("All AI Engines failed:", anyErr);
+            return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
+                status: 500,
+                headers: corsHeaders
+            });
+        }
         
     } catch (e) {
         console.error('Execution failed:', e);
