@@ -51,27 +51,55 @@ export async function onRequestPost(context) {
             styleDesc = "温馨治愈、温暖日常与充满治愈正能量";
         }
 
-        const prompt = `您是英语教学与联想记忆专家。请使用以下单词：[${words.join(', ')}]。
-请以【${styleDesc}】的风格，用通俗易懂的初中词汇创作一段极简（不超过3句话）、生动有趣的英语小故事，帮助学生快速联想并牢记这几个单词。
+        const creativeThemes = [
+            "外星人光顾地球时闹出的搞笑乌龙",
+            "魔法森林里萌宠动物们的奇妙日常",
+            "校园里一次令人捧腹大笑的科学实验",
+            "神奇厨房里厨具与食材的搞怪大冒险",
+            "时光穿越者在古代闹出的荒诞趣事",
+            "大侦探在破解离奇谜案时的意外神反转",
+            "超级英雄度假期间啼笑皆非的日常生活",
+            "深海王国里海洋生物举办的奇幻派对",
+            "未来太空站里宇航员与傲娇机器人的逗趣互动",
+            "宠物猫狗秘密策划的拯救零食大行动",
+            "午夜奇幻游乐园里发生的不可思议奇遇",
+            "神秘古堡探险时发现的搞笑宝藏",
+            "魔法学院新生上第一堂飞行课的爆笑瞬间",
+            "咖啡馆里一杯神奇饮品引发的连锁奇趣反应",
+            "秘密特工执行任务时的滑稽意外"
+        ];
 
-请严格以无任何额外文字、无 markdown 包裹的纯 JSON 格式返回：
+        const randomTheme = creativeThemes[Math.floor(Math.random() * creativeThemes.length)];
+        const randomSeed = Math.floor(Math.random() * 1000000);
+
+        const prompt = `您是英语教学与联想记忆创意大师。
+目标单词列表：[${words.join(', ')}]。
+整体风格：【${styleDesc}】
+本次灵感场景设定：【${randomTheme}】（创作编号: ${randomSeed}）
+
+请用通俗易懂的初中词汇创作一段极简（2-3句话）、生动有趣、情节反转出人意料的全新英语微故事，帮助学生通过场景联想牢固记住这几个单词。
+
+【关键要求】：
+1. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
+2. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
+3. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
+
+请严格以无任何额外解释、纯 JSON 格式输出：
 {
-  "story": "小故事内容（在故事中必须出现所有输入的单词，并用 <strong>单词</strong> 标签加粗标出目标词，故事必须极简易懂）",
-  "story_translation": "对应故事的中文翻译",
+  "story": "微故事英文内容（必须自然包含所有输入单词，并用 <strong>单词</strong> 加粗）",
+  "story_translation": "通俗生动的中文对照翻译",
   "words": [
     {
       "word": "目标词",
       "ipa": "美式音标，例如 /'prɪstiːn/",
       "pos": "词性，例如 adj.",
-      "definition": "10字以内最常用的中文解释",
-      "sentence": "5-8个词的极其简单的例句"
+      "definition": "10字以内最常用释义",
+      "sentence": "5-8个词的极其简单的新例句"
     }
   ]
 }
 
-注意：
-1. 故事必须生动有趣、紧扣【${styleDesc}】风格、逻辑通顺，所有英文句子和例句必须非常简单易懂。
-2. 为了防止 JSON 解析失败，故事或例句中如需使用引号，请使用单引号（'），绝对不要在 JSON 属性值内直接使用未转义的双引号（"）。`;
+注意：为了防止 JSON 解析失败，字符串内如有引号请使用单引号（'），严禁在 JSON 属性值内直接使用未转义的双引号（"）。`;
 
         // 1. Primary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
         const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
@@ -88,14 +116,15 @@ export async function onRequestPost(context) {
                     messages: [
                         {
                             role: "system",
-                            content: "You are a professional assistant that outputs ONLY pure, valid JSON format strings."
+                            content: "You are a creative English learning assistant. Always generate unique, imaginative, and distinct stories on every single request. Output ONLY pure, valid JSON format strings."
                         },
                         {
                             role: "user",
                             content: prompt
                         }
                     ],
-                    temperature: 0.3
+                    temperature: 0.9,
+                    top_p: 0.95
                 })
             });
 
@@ -130,7 +159,6 @@ export async function onRequestPost(context) {
         }
 
         // 2. Fallback Engine: Google Gemini Flash
-        const GEMINI_KEY = env.GEMINI_KEY || "";
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
 
@@ -158,7 +186,8 @@ export async function onRequestPost(context) {
                 ],
                 generationConfig: {
                     responseMimeType: "application/json",
-                    temperature: 0.5
+                    temperature: 0.92,
+                    topP: 0.95
                 }
             })
         });
