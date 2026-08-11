@@ -981,13 +981,14 @@ Page({
     const wordDefs = {};
 
     for (const entry of entries) {
-      const match = entry.match(/^([a-zA-Z-]+)(?:[\s:：=\(\[（【]+([^,\n;；，\)\]）】]+)?[）\]】\)]?$/);
+      const match = entry.match(/^([a-zA-Z-]+)([\s:：=\(\[（【].*)?$/);
       if (match) {
         const w = match[1].toLowerCase().trim();
-        const targetDef = match[2] ? match[2].trim() : '';
+        let rest = match[2] ? match[2].trim() : '';
+        rest = rest.replace(/^[\s:：=\(\[（【]+/, '').replace(/[\)\]）】]+$/, '').trim();
         words.push(w);
-        if (targetDef) {
-          wordDefs[w] = targetDef;
+        if (rest) {
+          wordDefs[w] = rest;
         }
       } else {
         const tokens = entry.split(/\s+/);

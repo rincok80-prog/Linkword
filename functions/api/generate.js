@@ -39,10 +39,12 @@ export async function onRequestPost(context) {
 
         for (const item of rawWords) {
             if (typeof item === 'string') {
-                const match = item.match(/^([a-zA-Z-]+)(?:[\s:：=\(\[（【]+([^,\n;；，\)\]）】]+)?[）\]】\)]?$/);
+                const match = item.match(/^([a-zA-Z-]+)([\s:：=\(\[（【].*)?$/);
                 if (match) {
                     const w = match[1].toLowerCase().trim();
-                    const targetDef = match[2] ? match[2].trim() : (wordDefs[w] || '');
+                    let rest = match[2] ? match[2].trim() : '';
+                    rest = rest.replace(/^[\s:：=\(\[（【]+/, '').replace(/[\)\]）】]+$/, '').trim();
+                    const targetDef = rest || (wordDefs[w] || '');
                     parsedWords.push(w);
                     if (targetDef) {
                         specialDefInstructions.push(`对于单词【${w}】，在故事和例句中必须严格使用其【${targetDef}】的含义，不可使用其他义项！词卡释义请写出【${targetDef}】。`);
