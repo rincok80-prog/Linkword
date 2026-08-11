@@ -124,27 +124,30 @@
                     </button>
                 </section>
 
-                <!-- Interactive Loading Card Playground -->
-                <div id="interactive-loading-card" class="loading-interactive-card hidden">
-                    <div class="loading-bg-glow"></div>
-                    <div class="holo-core-group">
-                        <div class="holo-pulse-ring ring-1"></div>
-                        <div class="holo-pulse-ring ring-2"></div>
-                        <div class="holo-center-brain">
-                            <span class="brain-emoji">🧠</span>
-                            <span class="brain-sparkle">✨</span>
+                <!-- Organic Story Atelier Loading Card -->
+                <div id="interactive-loading-card" class="loading-atelier-card hidden">
+                    <div class="atelier-bg-orbit"></div>
+                    
+                    <div class="atelier-core-group">
+                        <div class="atelier-orbit-ring ring-outer"></div>
+                        <div class="atelier-orbit-ring ring-inner"></div>
+                        <div class="atelier-quill-badge">
+                            <span class="quill-icon">🖋️</span>
+                            <span class="magic-sparkle">✨</span>
                         </div>
                     </div>
-                    <div class="loading-status-info">
-                        <span class="loading-status-title">⚡ AI 脑暴灵感构思中...</span>
-                        <span id="loading-status-sub" class="loading-status-sub">正在构建趣味联想场景...</span>
+
+                    <div class="atelier-status-info">
+                        <span class="atelier-status-title">✨ 正在为单词编织连结故事...</span>
+                        <span id="loading-status-sub" class="atelier-status-sub">把枯燥单词串联成妙趣横生的童话...</span>
                     </div>
-                    <div class="interactive-word-playground">
-                        <div class="playground-hint">
-                            <span class="hint-icon">👆</span>
-                            <span class="hint-text">轻点浮动药丸释放灵感！已触发 <span id="web-combo-num" class="combo-num">0</span> 次内存连击</span>
+
+                    <div class="atelier-word-playground">
+                        <div class="atelier-hint">
+                            <span class="hint-icon">🎨</span>
+                            <span class="hint-text">轻点色彩药丸激发故事灵感 · 连击蓄能 <span id="web-combo-num" class="combo-num">0</span></span>
                         </div>
-                        <div id="web-floating-bubbles-area" class="floating-bubbles-area"></div>
+                        <div id="web-floating-bubbles-area" class="atelier-bubbles-area"></div>
                     </div>
                     <div id="web-burst-sparks-layer" class="burst-sparks-layer"></div>
                 </div>
@@ -171,11 +174,6 @@
                         </div>
 
                         <!-- Standard Story View -->
-                        <div id="story-standard-view">
-                            <p id="story-content" class="story-content">
-                                <!-- Story injected here -->
-                            </p>
-                            <p id="story-translation" class="story-translation">
                                 <!-- Translation injected here -->
                             </p>
                         </div>

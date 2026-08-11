@@ -675,32 +675,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let loadingTipInterval = null;
     const loadingTips = [
-        "💡 单词们正在悄悄开会，准备合演一出大戏...",
-        "🐱 正在命令 AI 老师用最简单的词汇写小作文...",
-        "✨ 小贴士：联想记忆法比死记硬背牢固 3 倍哦！",
-        "📚 翻书声沙沙沙，故事马上就编好了...",
-        "🥑 正在给您的单词卡片配置标准美式音标...",
-        "🦄 正在为您打磨例句，保证简单又通俗易懂...",
-        "🌟 静待数秒，大脑正处于最佳联想记忆状态...",
-        "🍩 AI 正在做深呼吸，马上为您献上精彩故事..."
+        "✨ 正在用画笔为单词搭建故事城堡...",
+        "📖 寻找词语之间最奇妙的碰撞灵感...",
+        "🌱 把死记硬背变成童话绘本大冒险...",
+        "💡 正在为每个例句注入生动画面感...",
+        "🎉 魔法故事即将诞生，准备开启记忆！",
+        "🌟 静待数秒，大脑正处于最佳联想记忆状态..."
     ];
 
     function startLoadingTips() {
         const tipEl = document.getElementById('loading-tip-text');
-        if (!tipEl) return;
         
         let index = 0;
-        tipEl.textContent = loadingTips[0];
-        tipEl.style.transition = 'opacity 0.3s ease';
+        if (tipEl) {
+            tipEl.textContent = loadingTips[0];
+            tipEl.style.transition = 'opacity 0.3s ease';
+        }
+        if (elements.loadingStatusSub) {
+            elements.loadingStatusSub.textContent = loadingTips[0];
+        }
         
         if (loadingTipInterval) clearInterval(loadingTipInterval);
         
         loadingTipInterval = setInterval(() => {
             index = (index + 1) % loadingTips.length;
-            tipEl.style.opacity = '0';
+            if (tipEl) tipEl.style.opacity = '0';
             setTimeout(() => {
-                tipEl.textContent = loadingTips[index];
-                tipEl.style.opacity = '1';
+                if (tipEl) {
+                    tipEl.textContent = loadingTips[index];
+                    tipEl.style.opacity = '1';
+                }
                 if (elements.loadingStatusSub) {
                     elements.loadingStatusSub.textContent = loadingTips[index];
                 }
@@ -721,53 +725,112 @@ document.addEventListener('DOMContentLoaded', () => {
         state.loadingTapCount = 0;
         if (elements.webComboNum) elements.webComboNum.textContent = '0';
 
-        const colors = [
-            'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
-            'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)',
-            'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)'
+        const pastelPalette = [
+            { bg: 'linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%)', text: '#065f46' }, // Mint
+            { bg: 'linear-gradient(135deg, #fbcfe8 0%, #f472b6 100%)', text: '#831843' }, // Rose
+            { bg: 'linear-gradient(135deg, #bae6fd 0%, #38bdf8 100%)', text: '#0c4a6e' }, // Sky
+            { bg: 'linear-gradient(135deg, #fef08a 0%, #facc15 100%)', text: '#713f12' }, // Honey
+            { bg: 'linear-gradient(135deg, #ddd6fe 0%, #c084fc 100%)', text: '#581c87' }  // Lavender
         ];
 
         words.forEach((w, idx) => {
             const cleanWord = w.split(/[\(（:：]/)[0].trim();
             const bubble = document.createElement('div');
-            bubble.className = 'floating-bubble';
+            bubble.className = 'atelier-bubble';
             const left = 8 + (idx * 28) % 72;
             const top = 10 + (idx * 30) % 75;
+            const styleItem = pastelPalette[idx % pastelPalette.length];
             bubble.style.left = `${left}%`;
             bubble.style.top = `${top}px`;
-            bubble.style.background = colors[idx % colors.length];
-            bubble.innerHTML = `<span class="bubble-word">${cleanWord}</span>`;
+            bubble.style.background = styleItem.bg;
+            bubble.style.color = styleItem.text;
+            bubble.innerHTML = `<span class="bubble-word" style="color:${styleItem.text}">${cleanWord}</span>`;
 
-            bubble.addEventListener('click', () => {
+            bubble.addEventListener('click', (e) => {
                 state.loadingTapCount++;
                 if (elements.webComboNum) elements.webComboNum.textContent = state.loadingTapCount;
 
-                bubble.classList.add('popped');
-                
+                // Anime.js Elastic Spring Bounce Animation
+                if (typeof anime !== 'undefined') {
+                    anime({
+                        targets: bubble,
+                        scale: [1, 1.4, 0.9, 1.05, 1],
+                        rotate: [0, -12, 12, 0],
+                        duration: 700,
+                        easing: 'easeOutElastic(1, .5)'
+                    });
+
+                    // Anime.js Radial Particle Explosion
+                    const rect = bubble.getBoundingClientRect();
+                    const containerRect = elements.webFloatingBubblesArea.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2 - containerRect.left;
+                    const centerY = rect.top + rect.height / 2 - containerRect.top;
+
+                    for (let i = 0; i < 8; i++) {
+                        const particle = document.createElement('span');
+                        particle.className = 'anime-sparkle-dot';
+                        particle.style.left = `${centerX}px`;
+                        particle.style.top = `${centerY}px`;
+                        const pColors = ['#f43f5e', '#10b981', '#fbbf24', '#8b5cf6', '#3b82f6'];
+                        particle.style.background = pColors[i % pColors.length];
+                        elements.webFloatingBubblesArea.appendChild(particle);
+
+                        const angle = (i / 8) * Math.PI * 2;
+                        const dist = 35 + Math.random() * 25;
+
+                        anime({
+                            targets: particle,
+                            translateX: Math.cos(angle) * dist,
+                            translateY: Math.sin(angle) * dist,
+                            scale: [1.2, 0],
+                            opacity: [1, 0],
+                            duration: 600,
+                            easing: 'easeOutExpo',
+                            complete: () => particle.remove()
+                        });
+                    }
+                } else {
+                    bubble.classList.add('popped');
+                    setTimeout(() => bubble.classList.remove('popped'), 400);
+                }
+
                 // Spawn pop text
                 if (elements.webBurstSparksLayer) {
                     const popText = document.createElement('span');
                     popText.className = 'burst-pop-text';
                     popText.style.left = `${left}%`;
                     popText.style.top = `${Math.max(5, top - 15)}px`;
-                    const burstTexts = ['+100 🧠 记忆力', '✨ 灵感连击!', '🎉 Perfect!', '⚡ 故事力爆棚!', '🌟 词义链接中!'];
+                    const burstTexts = ['✨ 灵感爆发!', '📖 词义连通!', '🎉 童话魔咒!', '⚡ 记忆力+100', '🌟 故事生花!'];
                     popText.textContent = burstTexts[state.loadingTapCount % burstTexts.length];
                     elements.webBurstSparksLayer.appendChild(popText);
 
-                    setTimeout(() => popText.remove(), 600);
+                    setTimeout(() => popText.remove(), 650);
                 }
-
-                setTimeout(() => {
-                    bubble.classList.remove('popped');
-                    bubble.style.left = `${Math.floor(Math.random() * 70) + 10}%`;
-                    bubble.style.top = `${Math.floor(Math.random() * 70) + 10}px`;
-                }, 450);
             });
 
             elements.webFloatingBubblesArea.appendChild(bubble);
         });
+
+        // Anime.js Staggered Entrance Animation
+        if (typeof anime !== 'undefined') {
+            anime({
+                targets: '.atelier-quill-badge',
+                scale: [0.6, 1],
+                rotate: [-20, 0],
+                easing: 'easeOutElastic(1, .6)',
+                duration: 900
+            });
+
+            anime({
+                targets: '.atelier-bubble',
+                opacity: [0, 1],
+                scale: [0.2, 1],
+                translateY: [20, 0],
+                delay: anime.stagger(120, { from: 'center' }),
+                easing: 'easeOutElastic(1, .5)',
+                duration: 800
+            });
+        }
     }
 
     // Main logic for handling word memory generation

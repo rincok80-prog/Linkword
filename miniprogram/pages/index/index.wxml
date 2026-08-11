@@ -119,40 +119,39 @@
       <text class="empty-desc">输入 2 个或更多英文单词，AI 将其串联成一段生动的趣味小故事，帮您轻松记住！</text>
     </view>
 
-    <!-- Interactive Loading Playground Card -->
-    <view class="loading-interactive-card" wx:if="{{isGenerating}}">
-      <view class="loading-bg-glow"></view>
+    <!-- Organic Story Atelier Loading Card -->
+    <view class="loading-atelier-card" wx:if="{{isGenerating}}">
+      <view class="atelier-bg-orbit"></view>
       
-      <!-- Holographic Pulse Core -->
-      <view class="holo-core-group">
-        <view class="holo-pulse-ring ring-1"></view>
-        <view class="holo-pulse-ring ring-2"></view>
-        <view class="holo-center-brain">
-          <text class="brain-emoji">🧠</text>
-          <text class="brain-sparkle">✨</text>
+      <!-- Atelier Quill & Magic Path Ring -->
+      <view class="atelier-core-group">
+        <view class="atelier-orbit-ring ring-outer"></view>
+        <view class="atelier-orbit-ring ring-inner"></view>
+        <view class="atelier-quill-badge">
+          <text class="quill-icon">🖋️</text>
+          <text class="magic-sparkle">✨</text>
         </view>
       </view>
 
-      <view class="loading-status-info">
-        <text class="loading-status-title">⚡ AI 脑暴灵感构思中...</text>
-        <text class="loading-status-sub">{{currentTip}}</text>
+      <view class="atelier-status-info">
+        <text class="atelier-status-title">✨ 正在为单词编织连结故事...</text>
+        <text class="atelier-status-sub">{{currentTip}}</text>
       </view>
 
-      <!-- Interactive Tap Floating Word Bubbles Area -->
-      <view class="interactive-word-playground">
-        <view class="playground-hint">
-          <text class="hint-icon">👆</text>
-          <text class="hint-text">轻点浮动药丸释放灵感！已触发 <text class="combo-num">{{loadingTapCount}}</text> 次内存连击</text>
+      <!-- Interactive Pastel Word Pills Area -->
+      <view class="atelier-word-playground">
+        <view class="atelier-hint">
+          <text class="hint-icon">🎨</text>
+          <text class="hint-text">轻点色彩药丸激发故事灵感 · 连击蓄能 <text class="combo-num">{{loadingTapCount}}</text></text>
         </view>
         
-        <view class="floating-bubbles-area">
+        <view class="atelier-bubbles-area">
           <block wx:for="{{floatingBubbles}}" wx:key="id">
-            <view class="floating-bubble {{item.popped ? 'popped' : ''}}" 
-                  style="left: {{item.x}}%; top: {{item.y}}rpx; background: {{item.color}};"
+            <view class="atelier-bubble {{item.popped ? 'popped' : ''}}" 
+                  style="left: {{item.x}}%; top: {{item.y}}rpx; background: {{item.color}}; color: {{item.textColor}};"
                   data-id="{{item.id}}" 
                   bindtap="onTapFloatingBubble">
               <text class="bubble-word">{{item.word}}</text>
-              <text class="bubble-sparkle" wx:if="{{item.popped}}">+100 🧠</text>
             </view>
           </block>
         </view>
