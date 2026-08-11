@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedImageMime: null,
         selectedVocabMap: {},
         vocabSearchQuery: '',
-        storyLength: localStorage.getItem('storyLength') || 'medium'
+        storyLength: localStorage.getItem('storyLength') || 'short'
     };
 
     // Initialize Application
@@ -358,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const savedSliderVal = localStorage.getItem('storyLengthSliderVal') || (state.storyLength === 'short' ? 1 : state.storyLength === 'long' ? 3 : 2);
+        const savedSliderVal = localStorage.getItem('storyLengthSliderVal') || (state.storyLength === 'long' ? 3 : state.storyLength === 'medium' ? 2 : 1);
         updateSliderUI(savedSliderVal);
 
         if (lengthSlider) {

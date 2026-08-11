@@ -52,9 +52,9 @@ Page({
     selectedVocabMap: {},
     selectedVocabCount: 0,
     filteredVocabList: [],
-    storyLengthValue: 2,
-    storyLength: "medium",
-    storyLengthInfo: { icon: '📖', title: '标准故事', desc: '3-4 句' },
+    storyLengthValue: 1,
+    storyLength: "short",
+    storyLengthInfo: { icon: '⚡', title: '极简速记', desc: '1-2 句' },
     showLengthSlider: false,
     activePolysemyIndex: -1
   },
@@ -71,9 +71,9 @@ Page({
 
   initStoryLengthSlider() {
     try {
-      const savedVal = wx.getStorageSync('story_length_slider_val') || 2;
-      const numVal = parseInt(savedVal, 10) || 2;
-      const info = LENGTH_MAP[numVal] || LENGTH_MAP[2];
+      const savedVal = wx.getStorageSync('story_length_slider_val') || 1;
+      const numVal = parseInt(savedVal, 10) || 1;
+      const info = LENGTH_MAP[numVal] || LENGTH_MAP[1];
       this.setData({
         storyLengthValue: numVal,
         storyLength: info.key,

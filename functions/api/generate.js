@@ -78,13 +78,13 @@ export async function onRequestPost(context) {
             styleDesc = "温馨治愈、温暖日常与充满治愈正能量";
         }
 
-        const length = reqData.length || 'medium';
-        let lengthDesc = "创作一段通俗易懂的微故事（3-4句话，约50-70词），情节生动、起承转合自然";
-        let lengthNote = "故事篇幅要求：【标准故事（严格控制在3-4句话）】";
+        const length = reqData.length || 'short';
+        let lengthDesc = "创作极短的一到两句话（1-2句话，不超过35词），极简精炼，直击要点，快速形成记忆联结";
+        let lengthNote = "故事篇幅要求：【极简速记（严格控制在1-2句话以内）】";
 
-        if (length === 'short') {
-            lengthDesc = "创作极短的一到两句话（1-2句话，不超过35词），极简精炼，直击要点，快速形成记忆联结";
-            lengthNote = "故事篇幅要求：【极简速记（严格控制在1-2句话以内）】";
+        if (length === 'medium') {
+            lengthDesc = "创作一段通俗易懂的微故事（3-4句话，约50-70词），情节生动、起承转合自然";
+            lengthNote = "故事篇幅要求：【标准故事（严格控制在3-4句话）】";
         } else if (length === 'long') {
             lengthDesc = "创作一段生动丰满的沉浸式微小说（5-6句话，约90-130词），包含丰富场景细节、角色对话与出人意料的情节反转";
             lengthNote = "故事篇幅要求：【沉浸长篇（生动丰满，包含5-6句话）】";
