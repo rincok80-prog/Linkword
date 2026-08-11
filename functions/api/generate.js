@@ -31,15 +31,7 @@ export async function onRequestPost(context) {
             });
         }
         
-        // Environment Variable priority
-        const GEMINI_KEY = env.GEMINI_KEY || "";
-        
-        if (!GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
-                status: 400,
-                headers: corsHeaders
-            });
-        }
+        const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
         
         const parsedWords = words.map(item => {
             if (typeof item === 'string') {
@@ -149,127 +141,74 @@ ${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了
 
 注意：为了防止 JSON 解析失败，字符串内如有引号请使用单引号（'），严禁在 JSON 属性值内直接使用未转义的双引号（"）。`;
 
-        // 1. Primary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
-        const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
-        
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3200); // 3.2s speed timeout
+        // Sole Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
+        let lastErr = null;
 
-            const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
-                method: "POST",
-                signal: controller.signal,
-                headers: {
-                    "Authorization": `Bearer ${WECHAT_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    model: "Deepseek-v4-flash",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are a creative English learning assistant. Output ONLY pure, valid JSON format strings."
-                        },
-                        {
-                            role: "user",
-                            content: prompt
-                        }
-                    ],
-                    max_tokens: 380,
-                    temperature: 0.85,
-                    top_p: 0.9
-                })
-            });
-
-            clearTimeout(timeoutId);
-
-            if (wechatResp.ok) {
-                const wechatJson = await wechatResp.json();
-                let rawText = wechatJson?.choices?.[0]?.message?.content || "";
-                rawText = rawText.trim();
-                
-                if (rawText.startsWith("```")) {
-                    rawText = rawText.replace(/^```[a-zA-Z]*\n?/, "");
-                }
-                if (rawText.endsWith("```")) {
-                    rawText = rawText.replace(/```$/, "");
-                }
-                rawText = rawText.trim();
-
-                const firstBrace = rawText.indexOf('{');
-                const lastBrace = rawText.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    rawText = rawText.substring(firstBrace, lastBrace + 1);
-                }
-
-                JSON.parse(rawText);
-
-                return new Response(rawText, {
-                    status: 200,
-                    headers: corsHeaders
-                });
-            }
-        } catch (wechatErr) {
-            console.error("WeChat AI Engine timeout/fallback to Gemini Flash:", wechatErr);
-        }
-
-        // 2. High Speed Fallback Engine: Google Gemini Flash
-        const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
-        const apiHost = proxyHost || 'generativelanguage.googleapis.com';
-
-        if (!GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
-                status: 500,
-                headers: corsHeaders
-            });
-        }
-
-        const response = await fetch(`https://${apiHost}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        parts: [
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${WECHAT_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "Deepseek-v4-flash",
+                        messages: [
                             {
-                                text: prompt
+                                role: "system",
+                                content: "You are a creative English learning assistant. Output ONLY pure, valid JSON format strings."
+                            },
+                            {
+                                role: "user",
+                                content: prompt
                             }
-                        ]
+                        ],
+                        max_tokens: 380,
+                        temperature: 0.85,
+                        top_p: 0.9
+                    })
+                });
+
+                if (wechatResp.ok) {
+                    const wechatJson = await wechatResp.json();
+                    let rawText = wechatJson?.choices?.[0]?.message?.content || "";
+                    rawText = rawText.trim();
+                    
+                    if (rawText.startsWith("```")) {
+                        rawText = rawText.replace(/^```[a-zA-Z]*\n?/, "");
                     }
-                ],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    maxOutputTokens: 380,
-                    temperature: 0.85,
-                    topP: 0.9
+                    if (rawText.endsWith("```")) {
+                        rawText = rawText.replace(/```$/, "");
+                    }
+                    rawText = rawText.trim();
+
+                    const firstBrace = rawText.indexOf('{');
+                    const lastBrace = rawText.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1) {
+                        rawText = rawText.substring(firstBrace, lastBrace + 1);
+                    }
+
+                    JSON.parse(rawText);
+
+                    return new Response(rawText, {
+                        status: 200,
+                        headers: corsHeaders
+                    });
+                } else {
+                    const errText = await wechatResp.text();
+                    lastErr = new Error(`WeChat AI API Error (${wechatResp.status}): ${errText}`);
                 }
-            })
-        });
-        
-        const respText = await response.text();
-        if (response.status !== 200) {
-            throw new Error(`Gemini API error (HTTP ${response.status}): ${respText}`);
+            } catch (err) {
+                lastErr = err;
+            }
         }
-        
-        const data = JSON.parse(respText);
-        let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        
-        jsonText = jsonText.trim();
-        const firstBrace = jsonText.indexOf('{');
-        const lastBrace = jsonText.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
-        }
-        
-        JSON.parse(jsonText);
-        
-        return new Response(jsonText, {
-            status: 200,
+
+        return new Response(JSON.stringify({ error: lastErr?.message || '微信 AI 引擎生成失败，请稍后重试。' }), {
+            status: 500,
             headers: corsHeaders
         });
-        
+
     } catch (e) {
         console.error('Execution failed:', e);
         return new Response(JSON.stringify({ error: e.message || 'Execution failed' }), {
