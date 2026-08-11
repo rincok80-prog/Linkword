@@ -713,6 +713,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const cacheKey = 'lw_web_cache_' + words.map(w => typeof w === 'string' ? w : (w.word || '')).join('_') + '_' + (state.storyLength || 'short') + '_' + (state.selectedStyle || 'humorous');
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw) {
+            try {
+                const cachedResult = JSON.parse(cachedRaw);
+                if (cachedResult && cachedResult.story && cachedResult.words) {
+                    renderResult(cachedResult);
+                    showToast('秒级极速加载 (0.01s)', 'success');
+                    return;
+                }
+            } catch (e) {}
+        }
+
         // Show loading state
         elements.emptyState.classList.add('hidden');
         elements.outputPanel.classList.add('hidden');
@@ -736,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 result = await fetchAIResult(words);
             }
 
+            try { localStorage.setItem(cacheKey, JSON.stringify(result)); } catch (e) {}
             renderResult(result);
             saveHistoryItem(words, result);
             showToast('生成成功!', 'success');

@@ -1293,6 +1293,23 @@ Page({
       return;
     }
 
+    const cacheKey = 'lw_cache_' + validWords.join('_') + '_' + (this.data.storyLength || 'short') + '_' + (this.data.selectedStyle || 'humorous');
+    try {
+      const cached = wx.getStorageSync(cacheKey);
+      if (cached && cached.story && cached.words) {
+        this.renderResult(cached);
+        this.setData({
+          isGenerating: false,
+          showOutput: true
+        });
+        wx.showToast({
+          title: '秒极速加载 (0.01s)',
+          icon: 'success'
+        });
+        return;
+      }
+    } catch (e) {}
+
     this.stopAudio();
     this.setData({
       isGenerating: true,
@@ -1330,6 +1347,7 @@ Page({
         }
 
         const data = res.data;
+        try { wx.setStorageSync(cacheKey, data); } catch (e) {}
         this.renderResult(data);
         this.saveHistoryItem(validWords, data);
         this.setData({

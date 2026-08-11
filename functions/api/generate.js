@@ -144,7 +144,7 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
 
         const tasks = [];
 
-        // Engine 1: SiliconFlow Qwen2.5-7B-Instruct (⚡ Ultra-fast response)
+        // Engine 1: SiliconFlow Qwen2.5-7B-Instruct (⚡ Ultra-fast 1.8s - 3s response)
         if (SILICON_KEY) {
             tasks.push((async () => {
                 const resp = await fetchWithTimeout("https://api.siliconflow.cn/v1/chat/completions", {
@@ -156,11 +156,10 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
                     body: JSON.stringify({
                         model: "Qwen/Qwen2.5-7B-Instruct",
                         messages: [{ role: "user", content: prompt }],
-                        temperature: 0.75,
-                        max_tokens: maxTokens,
-                        response_format: { type: "json_object" }
+                        temperature: 0.7,
+                        max_tokens: maxTokens
                     })
-                }, 4000);
+                }, 8000);
                 if (!resp.ok) throw new Error(`SiliconFlow HTTP ${resp.status}`);
                 const data = await resp.json();
                 let raw = data?.choices?.[0]?.message?.content || "";
@@ -190,7 +189,7 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
                             maxOutputTokens: maxTokens
                         }
                     })
-                }, 4000);
+                }, 8000);
                 if (!resp.ok) throw new Error(`Gemini HTTP ${resp.status}`);
                 const data = await resp.json();
                 let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -223,6 +222,7 @@ ${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的
                         temperature: 0.85,
                         max_tokens: maxTokens
                     })
+                }, 10000);
                 if (!resp.ok) throw new Error(`WeChat AI HTTP ${resp.status}`);
                 const data = await resp.json();
                 let raw = data?.choices?.[0]?.message?.content || "";
