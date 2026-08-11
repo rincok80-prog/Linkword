@@ -18,6 +18,39 @@ const LENGTH_MAP = {
   3: { key: 'long', icon: '🌟', title: '沉浸长篇', desc: '5-6 句' }
 };
 
+const RANDOM_WORD_PRESETS = [
+  "curious, galaxy, adventure",
+  "whisper, dragon, brave",
+  "robot, pizza, dancing",
+  "magic, guitar, secret",
+  "detective, mirror, shadow",
+  "pristine, obsolete, digital",
+  "benevolent, chaotic, harmony",
+  "serendipity, ephemeral, nostalgia",
+  "diligent, triumph, achieve",
+  "novel, inspire, masterpiece",
+  "abrupt, silence, awkward",
+  "vulnerable, fortress, protect",
+  "meticulous, recipe, delicious",
+  "ambiguous, compass, wander",
+  "resilient, storm, blossom",
+  "plant(工厂), fine(罚款), current(水流)",
+  "bank(河岸), spring(弹簧), desert(抛弃)",
+  "bark(树皮), train(训练), match(火柴)",
+  "bear(忍受), book(预订), light(点燃)",
+  "party(聚会), patient(耐心的), rock(岩石)",
+  "coffee, alarm, sleepy",
+  "luggage, airport, passport",
+  "umbrella, rainbow, puddle",
+  "popcorn, cinema, laughter",
+  "treasure, map, island",
+  "camera, sunset, horizon",
+  "bicycle, breeze, freedom",
+  "candle, mystery, castle",
+  "magnet, iron, attraction",
+  "courage, leap, champion"
+];
+
 Page({
   data: {
     wordsInputValue: "",
@@ -930,6 +963,31 @@ Page({
       wx.setStorageSync('story_length_slider_val', val);
       wx.setStorageSync('story_length_pref', info.key);
     } catch (err) {}
+  },
+
+  fillRandomWords() {
+    let nextWords = "";
+    if (allVocabPool && allVocabPool.length > 50 && Math.random() > 0.45) {
+      const idxs = new Set();
+      while (idxs.size < 3) {
+        idxs.add(Math.floor(Math.random() * allVocabPool.length));
+      }
+      nextWords = Array.from(idxs).map(i => allVocabPool[i].word).join(', ');
+    } else {
+      const current = this.data.wordsInputValue.trim();
+      const filtered = RANDOM_WORD_PRESETS.filter(p => p !== current);
+      nextWords = filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    this.setData({
+      wordsInputValue: nextWords
+    });
+
+    wx.showToast({
+      title: '🎲 已随机填入单词',
+      icon: 'none',
+      duration: 1500
+    });
   },
 
   togglePolysemyOptions(e) {

@@ -450,6 +450,18 @@ button {
     border-color: var(--border-color-hover);
 }
 
+.tool-btn-random {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.28);
+    color: #d97706;
+    font-weight: 600;
+}
+
+.tool-btn-random:hover {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+}
+
 .tool-btn-highlight {
     background: rgba(99, 102, 241, 0.06);
     border-color: rgba(99, 102, 241, 0.25);

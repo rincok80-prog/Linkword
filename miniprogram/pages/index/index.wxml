@@ -43,15 +43,19 @@
         <textarea id="words-input" class="words-textarea" placeholder="例如: pristine, obsolete, digital..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
       </view>
 
-      <!-- Tool Bar (OCR + Word Index) -->
+      <!-- Tool Bar (Random + OCR + Word Index) -->
       <view class="input-toolbar">
+        <view class="tool-btn tool-btn-random" bindtap="fillRandomWords">
+          <text class="tool-icon">🎲</text>
+          <text class="tool-text">随机试词</text>
+        </view>
         <view class="tool-btn" bindtap="startOCR">
           <text class="tool-icon">📷</text>
           <text class="tool-text">拍照识别</text>
         </view>
         <view class="tool-btn tool-btn-highlight" bindtap="openVocabIndex">
           <text class="tool-icon">📖</text>
-          <text class="tool-text">中文选词 / 索引</text>
+          <text class="tool-text">中文选词</text>
         </view>
       </view>
 

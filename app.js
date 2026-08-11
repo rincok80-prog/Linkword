@@ -69,6 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cropCancelBtn: document.getElementById('crop-cancel-btn'),
         cropConfirmBtn: document.getElementById('crop-confirm-btn'),
 
+        // Word Actions & Tools
+        randomWordsBtn: document.getElementById('random-words-btn'),
+
         // Word Index Modal Elements
         openVocabModalBtn: document.getElementById('open-vocab-modal-btn'),
         closeVocabModalBtn: document.getElementById('close-vocab-modal-btn'),
@@ -284,6 +287,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Word Action Buttons
+        if (elements.randomWordsBtn) {
+            const randomPresets = [
+                "curious, galaxy, adventure",
+                "whisper, dragon, brave",
+                "robot, pizza, dancing",
+                "magic, guitar, secret",
+                "detective, mirror, shadow",
+                "pristine, obsolete, digital",
+                "benevolent, chaotic, harmony",
+                "serendipity, ephemeral, nostalgia",
+                "diligent, triumph, achieve",
+                "novel, inspire, masterpiece",
+                "abrupt, silence, awkward",
+                "vulnerable, fortress, protect",
+                "meticulous, recipe, delicious",
+                "ambiguous, compass, wander",
+                "resilient, storm, blossom",
+                "plant(工厂), fine(罚款), current(水流)",
+                "bank(河岸), spring(弹簧), desert(抛弃)",
+                "bark(树皮), train(训练), match(火柴)",
+                "bear(忍受), book(预订), light(点燃)",
+                "party(聚会), patient(耐心的), rock(岩石)",
+                "coffee, alarm, sleepy",
+                "luggage, airport, passport",
+                "umbrella, rainbow, puddle",
+                "popcorn, cinema, laughter",
+                "treasure, map, island",
+                "camera, sunset, horizon",
+                "bicycle, breeze, freedom",
+                "candle, mystery, castle",
+                "magnet, iron, attraction",
+                "courage, leap, champion"
+            ];
+
+            elements.randomWordsBtn.addEventListener('click', () => {
+                const current = elements.wordsInput.value.trim();
+                const filtered = randomPresets.filter(p => p !== current);
+                const nextWords = filtered[Math.floor(Math.random() * filtered.length)];
+                elements.wordsInput.value = nextWords;
+                elements.wordsInput.focus();
+                showToast('🎲 已随机填入 3 个精选测试单词！', 'info');
+            });
+        }
+
         elements.clearWordsBtn.addEventListener('click', () => {
             elements.wordsInput.value = '';
             elements.wordsInput.focus();
