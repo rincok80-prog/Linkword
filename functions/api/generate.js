@@ -69,16 +69,6 @@ export async function onRequestPost(context) {
             });
         }
         
-        // Environment Variable priority
-        const GEMINI_KEY = env.GEMINI_KEY || "";
-        
-        if (!GEMINI_KEY) {
-            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
-                status: 400,
-                headers: corsHeaders
-            });
-        }
-        
         const style = reqData.style || 'humorous';
         let styleDesc = "幽默搞笑、情节反转出人意料，让人忍俊不禁";
         if (style === 'scifi') {
@@ -218,6 +208,7 @@ ${specialDefInstructions.length > 0 ? '2. 故事必须精准体现用户指定�
         // 2. Fallback Engine: Google Gemini Flash
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
+        const GEMINI_KEY = env.GEMINI_KEY || "";
 
         if (!GEMINI_KEY) {
             return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
