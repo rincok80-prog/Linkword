@@ -146,13 +146,11 @@
               <text class="quiz-icon">🧩</text>
               <text class="quiz-text">{{isQuizMode ? '读故事' : '挖空测验'}}</text>
             </view>
-            <view class="speak-btn {{isStorySpeaking ? 'speaking' : ''}}" bindtap="toggleSpeakStory">
-              <text class="speak-icon">🔊</text>
-              <text class="speak-text">{{isStorySpeaking ? '播放中' : '朗读'}}</text>
+            <view class="header-icon-btn speak-btn {{isStorySpeaking ? 'speaking' : ''}}" bindtap="toggleSpeakStory" title="朗读故事">
+              <text class="btn-icon">🔊</text>
             </view>
-            <button class="share-story-btn" open-type="share">
-              <text class="share-icon">📤</text>
-              <text class="share-text">分享</text>
+            <button class="header-icon-btn share-story-btn" open-type="share" title="分享给好友">
+              <text class="btn-icon">📤</text>
             </button>
           </view>
         </view>
