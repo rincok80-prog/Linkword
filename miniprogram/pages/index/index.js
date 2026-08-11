@@ -1014,6 +1014,7 @@ Page({
       },
       success: (res) => {
         this.stopLoadingTips();
+        console.log('[LinkWord] Generate Response status:', res.statusCode, res.data);
         if (res.statusCode !== 200) {
           const errMsg = res.data && res.data.error ? res.data.error : `HTTP ${res.statusCode}`;
           wx.showModal({
@@ -1028,7 +1029,28 @@ Page({
           return;
         }
 
-        const data = res.data;
+        let data = res.data;
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data);
+          } catch(e) {
+            console.error('JSON parse error on res.data:', e);
+          }
+        }
+
+        if (!data || (!data.story && (!data.words || data.words.length === 0))) {
+          wx.showModal({
+            title: '解析失败',
+            content: '返回数据格式不完整，请重试。',
+            showCancel: false
+          });
+          this.setData({
+            isGenerating: false,
+            showEmptyState: true
+          });
+          return;
+        }
+
         this.renderResult(data);
         this.saveHistoryItem(words, data);
         this.setData({
