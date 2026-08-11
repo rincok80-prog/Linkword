@@ -63,28 +63,31 @@
                 <!-- Input Panel -->
                 <section class="input-card">
                     <div class="input-header">
-                        <h3>输入单词</h3>
-                        <span class="info-tip">用空格、逗号或回车分隔多个单词</span>
+                        <div class="input-header-left">
+                            <h3>输入待背单词</h3>
+                            <span class="info-tip">用空格、逗号或回车分隔多个单词</span>
+                        </div>
+                        <button id="clear-words-btn" class="clear-text-btn" title="清空输入框">
+                            ✕ 清空
+                        </button>
                     </div>
                     <div class="textarea-wrapper">
                         <textarea id="words-input" placeholder="例如: pristine, obsolete, digital..." spellcheck="false"></textarea>
                     </div>
-                    <div class="input-actions">
-                        <div class="action-left">
-                            <button id="open-scan-btn" class="secondary-btn" title="通过拍照或上传图片识别单词">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                                拍照/图片识别
-                            </button>
-                            <button id="open-vocab-modal-btn" class="secondary-btn" title="输入中文查找并勾选对应英文单词" style="border-color: rgba(99, 102, 241, 0.4); color: #4f46e5; background: rgba(99, 102, 241, 0.06);">
-                                📖 单词索引 (中文选词)
-                            </button>
-                            <button id="clear-words-btn" class="text-btn">清空</button>
-                        </div>
-                        <button id="generate-btn" class="primary-btn">
-                            <span>串联记忆</span>
-                            <div class="spinner hidden"></div>
+                    <div class="input-toolbar">
+                        <button id="open-scan-btn" class="tool-btn" title="通过拍照或上传图片识别单词">
+                            <span class="tool-icon">📷</span>
+                            <span class="tool-text">拍照识别</span>
+                        </button>
+                        <button id="open-vocab-modal-btn" class="tool-btn tool-btn-highlight" title="输入中文查找并勾选对应英文单词">
+                            <span class="tool-icon">📖</span>
+                            <span class="tool-text">中文选词 / 索引</span>
                         </button>
                     </div>
+                    <button id="generate-btn" class="primary-btn-full">
+                        <span class="btn-text">✨ 串联记忆 · 生成故事</span>
+                        <div class="spinner hidden"></div>
+                    </button>
                 </section>
 
                 <!-- Output Panel -->

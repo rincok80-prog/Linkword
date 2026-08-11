@@ -363,20 +363,43 @@ button {
 .input-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 12px;
+}
+
+.input-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .input-header h3 {
     font-family: var(--font-heading);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
 .info-tip {
     font-size: 12px;
-    color: var(--text-secondary);
+    color: var(--text-muted);
+}
+
+.clear-text-btn {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: none;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-text-btn:hover {
+    background: rgba(239, 68, 68, 0.16);
+    transform: scale(0.96);
 }
 
 .textarea-wrapper textarea {
@@ -396,19 +419,85 @@ button {
     color: var(--text-muted);
 }
 
-.input-actions {
+/* Tool Buttons Row */
+.input-toolbar {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 10px;
     margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
+    margin-bottom: 12px;
 }
 
-.action-left {
+.tool-btn {
+    flex: 1;
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 14px;
     display: flex;
-    gap: 8px;
     align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.tool-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-color-hover);
+}
+
+.tool-btn-highlight {
+    background: rgba(99, 102, 241, 0.06);
+    border-color: rgba(99, 102, 241, 0.25);
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+.tool-btn-highlight:hover {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.tool-icon {
+    font-size: 15px;
+}
+
+/* Full Width Submit CTA Button */
+.primary-btn-full {
+    width: 100%;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 13px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+    transition: all 0.2s ease;
+}
+
+.primary-btn-full:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+}
+
+.primary-btn-full:active {
+    transform: translateY(0);
+}
+
+.primary-btn-full:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Loading Spinner */

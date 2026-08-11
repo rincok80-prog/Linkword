@@ -91,20 +91,48 @@
 
 .input-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 20rpx;
+}
+
+.input-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
 .input-title {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .info-tip {
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: var(--text-muted);
-  margin-top: 4rpx;
+}
+
+.clear-text-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border-radius: 20rpx;
+  padding: 8rpx 18rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.clear-text-btn:active {
+  background: rgba(239, 68, 68, 0.16);
+  transform: scale(0.95);
+}
+
+.clear-icon {
+  font-size: 20rpx;
 }
 
 .textarea-wrapper {
@@ -112,7 +140,7 @@
   border: 2rpx solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 24rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
 }
 
 .words-textarea {
@@ -127,66 +155,97 @@
   color: var(--text-muted);
 }
 
-.input-actions {
+/* Tool Buttons Row */
+.input-toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
 }
 
-.action-left {
+.tool-btn {
+  flex: 1;
+  background: var(--bg-app);
+  border: 1.5rpx solid var(--border-color);
+  border-radius: 20rpx;
+  padding: 16rpx 20rpx;
   display: flex;
-  align-items: center;
-  gap: 20rpx;
-}
-
-.secondary-btn-sm {
-  background-color: var(--bg-card-hover);
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  font-size: 24rpx;
-  padding: 12rpx 20rpx;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  transition: all 0.2s ease;
-}
-
-.secondary-btn-sm:active {
-  background-color: var(--border-color);
-  transform: scale(0.96);
-}
-
-.btn-icon {
-  font-size: 26rpx;
-}
-
-.text-btn-sm {
-  font-size: 24rpx;
-  color: var(--text-muted);
-  padding: 10rpx;
-}
-
-.primary-btn-submit {
-  background-color: var(--accent);
-  color: #ffffff;
-  border-radius: var(--radius-sm);
-  font-size: 26rpx;
-  font-weight: 600;
-  padding: 16rpx 36rpx;
-  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10rpx;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
-.primary-btn-submit.disabled {
-  opacity: 0.6;
-  pointer-events: none;
+.tool-btn:active {
+  background: var(--bg-card-hover);
+  transform: scale(0.97);
 }
 
-.primary-btn-submit:active {
-  background-color: var(--accent-hover);
-  transform: scale(0.96);
+.tool-btn-highlight {
+  background: rgba(99, 102, 241, 0.07);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+.tool-btn-highlight .tool-text {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.tool-icon {
+  font-size: 28rpx;
+}
+
+.tool-text {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Full Width Submit CTA Button */
+.primary-btn-submit-full {
+  width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #ffffff;
+  border-radius: 22rpx;
+  padding: 22rpx 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  box-shadow: 0 8rpx 24rpx rgba(79, 70, 229, 0.28);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primary-btn-submit-full:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 12rpx rgba(79, 70, 229, 0.2);
+}
+
+.primary-btn-submit-full.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.submit-sparkle {
+  font-size: 30rpx;
+}
+
+.submit-text {
+  white-space: nowrap;
+}
+
+.spinner-small {
+  width: 32rpx;
+  height: 32rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .spinner-small {
