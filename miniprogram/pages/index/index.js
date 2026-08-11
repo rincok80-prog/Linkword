@@ -454,8 +454,8 @@ Page({
   },
 
   applySelectedVocab() {
-    const selectedWords = Object.keys(this.data.selectedVocabMap);
-    if (selectedWords.length === 0) {
+    const selectedEntries = Object.entries(this.data.selectedVocabMap);
+    if (selectedEntries.length === 0) {
       wx.showToast({
         title: '请先勾选单词',
         icon: 'none'
@@ -463,12 +463,25 @@ Page({
       return;
     }
 
+    const currentQuery = (this.data.cleanQueryWord || '').trim();
+    const isChinese = !this.data.isEnglishQuery && currentQuery && /[\u4e00-\u9fa5]/.test(currentQuery);
+
+    const formattedList = selectedEntries.map(([word, item]) => {
+      if (isChinese) {
+        return `${word}(${currentQuery})`;
+      } else if (item && item.definition) {
+        const firstDef = item.definition.split(/[,，;；\n]/)[0].trim().slice(0, 8);
+        return firstDef ? `${word}(${firstDef})` : word;
+      }
+      return word;
+    });
+
     let currentVal = (this.data.wordsInputValue || '').trim();
     let newVal = '';
     if (currentVal) {
-      newVal = currentVal + ', ' + selectedWords.join(', ');
+      newVal = currentVal + ', ' + formattedList.join(', ');
     } else {
-      newVal = selectedWords.join(', ');
+      newVal = formattedList.join(', ');
     }
 
     this.setData({
@@ -944,11 +957,32 @@ Page({
       return;
     }
 
-    // Split words by common delimiters
-    const words = rawInput
-      .split(/[\s,;，；\n\t]+/)
-      .map(w => w.trim().replace(/[^a-zA-Z-]/g, ''))
-      .filter(w => w.length > 0);
+    // Split words by lines or commas and parse optional target definitions (e.g. "bank (河岸)", "spring:弹簧")
+    const entries = rawInput
+      .split(/[\n,;，；]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const words = [];
+    const wordDefs = {};
+
+    for (const entry of entries) {
+      const match = entry.match(/^([a-zA-Z-]+)(?:[\s:：=\(\[（【]+([^,\n;；，\)\]）】]+)?[）\]】\)]?$/);
+      if (match) {
+        const w = match[1].toLowerCase().trim();
+        const targetDef = match[2] ? match[2].trim() : '';
+        words.push(w);
+        if (targetDef) {
+          wordDefs[w] = targetDef;
+        }
+      } else {
+        const tokens = entry.split(/\s+/);
+        for (const t of tokens) {
+          const clean = t.replace(/[^a-zA-Z-]/g, '').toLowerCase().trim();
+          if (clean) words.push(clean);
+        }
+      }
+    }
 
     if (words.length === 0) {
       wx.showToast({
@@ -974,6 +1008,7 @@ Page({
       },
       data: {
         words: words,
+        wordDefs: wordDefs,
         style: this.data.selectedStyle || 'humorous',
         length: this.data.storyLength || 'medium'
       },

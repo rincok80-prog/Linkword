@@ -31,7 +31,7 @@
       <view class="input-header">
         <view class="input-header-left">
           <text class="input-title">输入单词</text>
-          <text class="info-tip">用空格、逗号或换行分隔多个单词</text>
+          <text class="info-tip">支持指定义项，如: bank(河岸), plant(工厂)</text>
         </view>
         <view class="clear-text-btn" bindtap="clearWords" wx:if="{{wordsInputValue}}">
           <text class="clear-icon">✕</text>
@@ -40,7 +40,7 @@
       </view>
 
       <view class="textarea-wrapper">
-        <textarea id="words-input" class="words-textarea" placeholder="例如: pristine, obsolete, digital..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
+        <textarea id="words-input" class="words-textarea" placeholder="例如: bank (河岸), spring (弹簧), obsolete..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
       </view>
 
       <!-- Tool Bar (OCR + Word Index) -->

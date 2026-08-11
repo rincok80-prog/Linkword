@@ -558,19 +558,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Clean and parse text area input into list of unique words
+    // Clean and parse text area input into list of unique words and specified definitions
     function parseInputWords() {
         const text = elements.wordsInput.value;
-        if (!text.trim()) return [];
+        if (!text.trim()) return { words: [], wordDefs: {} };
         
-        // Split by commas, semicolons, whitespace, or newlines
-        const words = text
-            .split(/[\s,;，；\n]+/)
-            .map(w => w.trim().replace(/[^a-zA-Z-]/g, '')) // remove symbols except hyphen
-            .filter(w => w.length > 1); // remove empty or single letter tokens (except 'a' maybe, but 'a' is not a vocab target)
+        const entries = text
+            .split(/[\n,;，；]+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        const words = [];
+        const wordDefs = {};
+
+        for (const entry of entries) {
+            const match = entry.match(/^([a-zA-Z-]+)(?:[\s:：=\(\[（【]+([^,\n;；，\)\]）】]+)?[）\]】\)]?$/);
+            if (match) {
+                const w = match[1].toLowerCase().trim();
+                const targetDef = match[2] ? match[2].trim() : '';
+                words.push(w);
+                if (targetDef) {
+                    wordDefs[w] = targetDef;
+                }
+            } else {
+                const tokens = entry.split(/\s+/);
+                for (const t of tokens) {
+                    const clean = t.replace(/[^a-zA-Z-]/g, '').toLowerCase().trim();
+                    if (clean && clean.length >= 2) words.push(clean);
+                }
+            }
+        }
         
-        // Deduplicate
-        return [...new Set(words)];
+        return {
+            words: [...new Set(words)],
+            wordDefs: wordDefs
+        };
     }
 
     let loadingTipInterval = null;
@@ -614,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main logic for handling word memory generation
     async function handleGeneration() {
-        const words = parseInputWords();
+        const { words, wordDefs } = parseInputWords();
         if (words.length === 0) {
             showToast('请输入一些英文单词', 'error');
             return;
@@ -637,10 +659,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // simulate short network latency for better experience
                     await new Promise(resolve => setTimeout(resolve, 800));
                 } else {
-                    result = await fetchSharedAIResult(words);
+                    result = await fetchSharedAIResult(words, wordDefs);
                 }
             } else {
-                result = await fetchAIResult(words);
+                result = await fetchAIResult(words, wordDefs);
             }
 
             renderResult(result);
@@ -663,7 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fetch result from our own backend proxy (runs when provider is local/default on live server)
-    async function fetchSharedAIResult(words) {
+    async function fetchSharedAIResult(words, wordDefs = {}) {
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: {
@@ -671,6 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({
                 words: words,
+                wordDefs: wordDefs,
                 style: state.selectedStyle || 'humorous',
                 length: state.storyLength || 'medium'
             })
@@ -686,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Fetch result from Gemini / DeepSeek / Custom endpoint
-    async function fetchAIResult(words) {
+    async function fetchAIResult(words, wordDefs = {}) {
         // If running on a local server, we route ALL requests through our local python server proxy
         // to automatically benefit from its VPN routing and bypass browser network blocks.
         if (window.location.protocol !== 'file:') {
@@ -697,6 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     words: words,
+                    wordDefs: wordDefs,
                     style: state.selectedStyle || 'humorous',
                     length: state.storyLength || 'medium',
                     provider: state.apiProvider,
@@ -1641,17 +1665,31 @@ JSON Schema 结构：
     }
 
     function applySelectedVocab() {
-        const selected = Object.keys(state.selectedVocabMap);
-        if (selected.length === 0) return;
+        const selectedEntries = Object.entries(state.selectedVocabMap);
+        if (selectedEntries.length === 0) return;
+
+        const currentQuery = (state.vocabSearchQuery || '').trim();
+        const isChinese = currentQuery && /[\u4e00-\u9fa5]/.test(currentQuery);
+
+        const formattedList = selectedEntries.map(([word, item]) => {
+            if (isChinese) {
+                return `${word}(${currentQuery})`;
+            } else if (item && item.definition) {
+                const firstDef = item.definition.split(/[,，;；\n]/)[0].trim().slice(0, 8);
+                return firstDef ? `${word}(${firstDef})` : word;
+            }
+            return word;
+        });
+
         const currentVal = (elements.wordsInput.value || '').trim();
         if (currentVal) {
-            elements.wordsInput.value = currentVal + ', ' + selected.join(', ');
+            elements.wordsInput.value = currentVal + ', ' + formattedList.join(', ');
         } else {
-            elements.wordsInput.value = selected.join(', ');
+            elements.wordsInput.value = formattedList.join(', ');
         }
         closeVocabModal();
         state.selectedVocabMap = {};
-        showToast(`已填入 ${selected.length} 个单词`, 'success');
+        showToast(`已填入 ${selectedEntries.length} 个单词`, 'success');
         elements.wordsInput.focus();
     }
 });

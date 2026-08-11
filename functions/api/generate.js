@@ -23,9 +23,47 @@ export async function onRequestPost(context) {
     
     try {
         const reqData = await request.json().catch(() => ({}));
-        const words = reqData.words;
-        if (!words || !Array.isArray(words) || words.length === 0) {
+        let rawWords = reqData.words || [];
+        const wordDefs = reqData.wordDefs || {};
+
+        if (!rawWords || !Array.isArray(rawWords) || rawWords.length === 0) {
             return new Response(JSON.stringify({ error: 'Missing words array in body' }), {
+                status: 400,
+                headers: corsHeaders
+            });
+        }
+
+        // Parse polysemous specified meanings if provided in "word (def)", "word:def", "word=def", or wordDefs
+        const parsedWords = [];
+        const specialDefInstructions = [];
+
+        for (const item of rawWords) {
+            if (typeof item === 'string') {
+                const match = item.match(/^([a-zA-Z-]+)(?:[\s:：=\(\[（【]+([^,\n;；，\)\]）】]+)?[）\]】\)]?$/);
+                if (match) {
+                    const w = match[1].toLowerCase().trim();
+                    const targetDef = match[2] ? match[2].trim() : (wordDefs[w] || '');
+                    parsedWords.push(w);
+                    if (targetDef) {
+                        specialDefInstructions.push(`对于单词【${w}】，在故事和例句中必须严格使用其【${targetDef}】的含义，不可使用其他义项！词卡释义请写出【${targetDef}】。`);
+                    }
+                } else {
+                    const cleanW = item.replace(/[^a-zA-Z-]/g, '').toLowerCase().trim();
+                    if (cleanW) parsedWords.push(cleanW);
+                }
+            } else if (item && typeof item === 'object' && item.word) {
+                const w = item.word.toLowerCase().trim();
+                const targetDef = item.targetDef || item.def || wordDefs[w] || '';
+                parsedWords.push(w);
+                if (targetDef) {
+                    specialDefInstructions.push(`对于单词【${w}】，在故事和例句中必须严格使用其【${targetDef}】的含义，不可使用其他义项！词卡释义请写出【${targetDef}】。`);
+                }
+            }
+        }
+
+        const uniqueWords = Array.from(new Set(parsedWords));
+        if (uniqueWords.length === 0) {
+            return new Response(JSON.stringify({ error: 'No valid words found' }), {
                 status: 400,
                 headers: corsHeaders
             });
@@ -84,19 +122,24 @@ export async function onRequestPost(context) {
         const randomTheme = creativeThemes[Math.floor(Math.random() * creativeThemes.length)];
         const randomSeed = Math.floor(Math.random() * 1000000);
 
+        let specialDefBlock = "";
+        if (specialDefInstructions.length > 0) {
+            specialDefBlock = `\n【用户特别指定的单词义项要求】：\n` + specialDefInstructions.join('\n') + '\n';
+        }
+
         const prompt = `您是英语教学与联想记忆创意大师。
-目标单词列表：[${words.join(', ')}]。
+目标单词列表：[${uniqueWords.join(', ')}]。
 整体风格：【${styleDesc}】
 本次灵感场景设定：【${randomTheme}】（创作编号: ${randomSeed}）
 ${lengthNote}
-
-请用通俗易懂的初中词汇，根据上述要求${lengthDesc}，帮助学生通过场景联想牢固记住这几个单词。
+${specialDefBlock}
+请用通俗易懂的初中词汇，根据上述要求${lengthDesc}，帮助学生通过场景联想牢固记住这几个单词${specialDefInstructions.length > 0 ? '及其指定含义' : ''}。
 
 【关键要求】：
 1. 篇幅长度必须严格符合【${lengthNote}】！
-2. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
-3. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
-4. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
+${specialDefInstructions.length > 0 ? '2. 故事必须精准体现用户指定的单词义项，词卡解释和例句也必须针对指定含义！\n' : ''}3. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
+4. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
+5. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
 
 请严格以无任何额外解释、纯 JSON 格式输出：
 {
@@ -107,7 +150,7 @@ ${lengthNote}
       "word": "目标词",
       "ipa": "美式音标，例如 /'prɪstiːn/",
       "pos": "词性，例如 adj.",
-      "definition": "10字以内最常用释义",
+      "definition": "10字以内最常用释义（如有指定义项必须匹配指定义项）",
       "sentence": "5-8个词的极其简单的新例句"
     }
   ]
