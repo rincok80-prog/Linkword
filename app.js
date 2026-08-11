@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedImageMime: null,
         selectedVocabMap: {},
         vocabSearchQuery: '',
+        storyLength: localStorage.getItem('storyLength') || 'medium'
     };
 
     // Initialize Application
@@ -323,6 +324,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elements.vocabApplyBtn) {
             elements.vocabApplyBtn.addEventListener('click', applySelectedVocab);
         }
+
+        // Story Length Selector Listeners
+        const lengthPills = document.querySelectorAll('.length-pill');
+        lengthPills.forEach(pill => {
+            const len = pill.getAttribute('data-len');
+            if (len === state.storyLength) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+            pill.addEventListener('click', () => {
+                const selectedLen = pill.getAttribute('data-len');
+                if (!selectedLen) return;
+                state.storyLength = selectedLen;
+                localStorage.setItem('storyLength', selectedLen);
+                lengthPills.forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+            });
+        });
 
         // Main generation trigger
         elements.generateBtn.addEventListener('click', handleGeneration);
@@ -607,7 +627,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({
                 words: words,
-                style: state.selectedStyle || 'humorous'
+                style: state.selectedStyle || 'humorous',
+                length: state.storyLength || 'medium'
             })
         });
         
@@ -632,6 +653,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     words: words,
+                    style: state.selectedStyle || 'humorous',
+                    length: state.storyLength || 'medium',
                     provider: state.apiProvider,
                     apiKey: state.apiKey,
                     apiModel: state.apiModel,

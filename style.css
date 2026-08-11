@@ -466,6 +466,66 @@ button {
     font-size: 15px;
 }
 
+/* Length Selector Segmented Control */
+.length-selector-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    background: var(--bg-app);
+    padding: 6px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.length-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.length-options {
+    display: flex;
+    flex: 1;
+    gap: 6px;
+}
+
+.length-pill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 6px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.length-pill:hover {
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.length-pill.active {
+    background: #ffffff;
+    color: #4f46e5;
+    font-weight: 700;
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.pill-icon {
+    font-size: 13px;
+}
+
 /* Full Width Submit CTA Button */
 .primary-btn-full {
     width: 100%;

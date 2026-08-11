@@ -45,7 +45,8 @@ Page({
     isSearchingOnline: false,
     selectedVocabMap: {},
     selectedVocabCount: 0,
-    filteredVocabList: []
+    filteredVocabList: [],
+    storyLength: "medium"
   },
 
   vocabSearchTimer: null,
@@ -863,6 +864,17 @@ Page({
     }
   },
 
+  setStoryLength(e) {
+    const len = e.currentTarget.dataset.len;
+    if (!len) return;
+    this.setData({
+      storyLength: len
+    });
+    try {
+      wx.setStorageSync('story_length_pref', len);
+    } catch (err) {}
+  },
+
   // Main generator trigger
   handleGeneration() {
     if (this.data.isGenerating) return;
@@ -906,7 +918,8 @@ Page({
       },
       data: {
         words: words,
-        style: this.data.selectedStyle
+        style: this.data.selectedStyle || 'humorous',
+        length: this.data.storyLength || 'medium'
       },
       success: (res) => {
         this.stopLoadingTips();

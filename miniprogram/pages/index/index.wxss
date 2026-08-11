@@ -201,6 +201,64 @@
   white-space: nowrap;
 }
 
+/* Length Selector Segmented Control */
+.length-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  background: var(--bg-app);
+  padding: 10rpx 16rpx;
+  border-radius: 18rpx;
+  border: 1.5rpx solid var(--border-color);
+}
+
+.length-label {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.length-options {
+  display: flex;
+  flex: 1;
+  gap: 10rpx;
+}
+
+.length-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1rpx solid transparent;
+  border-radius: 14rpx;
+  padding: 10rpx 8rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.length-pill.active {
+  background: #ffffff;
+  color: #4f46e5;
+  font-weight: 700;
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.length-pill:active {
+  transform: scale(0.96);
+}
+
+.pill-icon {
+  font-size: 22rpx;
+}
+
 /* Full Width Submit CTA Button */
 .primary-btn-submit-full {
   width: 100%;

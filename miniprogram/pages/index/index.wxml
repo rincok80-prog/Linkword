@@ -55,6 +55,25 @@
         </view>
       </view>
 
+      <!-- Length Selector Segmented Control -->
+      <view class="length-selector-wrap">
+        <text class="length-label">故事篇幅：</text>
+        <view class="length-options">
+          <view class="length-pill {{storyLength === 'short' ? 'active' : ''}}" data-len="short" bindtap="setStoryLength">
+            <text class="pill-icon">⚡</text>
+            <text>极简 (1-2句)</text>
+          </view>
+          <view class="length-pill {{storyLength === 'medium' ? 'active' : ''}}" data-len="medium" bindtap="setStoryLength">
+            <text class="pill-icon">📖</text>
+            <text>标准 (3-4句)</text>
+          </view>
+          <view class="length-pill {{storyLength === 'long' ? 'active' : ''}}" data-len="long" bindtap="setStoryLength">
+            <text class="pill-icon">🌟</text>
+            <text>长篇 (5-6句)</text>
+          </view>
+        </view>
+      </view>
+
       <!-- Primary Action Button -->
       <view class="primary-btn-submit-full {{isGenerating ? 'disabled' : ''}}" bindtap="handleGeneration">
         <block wx:if="{{!isGenerating}}">
