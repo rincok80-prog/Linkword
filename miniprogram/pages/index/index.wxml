@@ -181,16 +181,16 @@
           <!-- Polysemy Dropdown Drawer -->
           <view class="polysemy-drawer" wx:if="{{activePolysemyIndex === index && item.alt_meanings && item.alt_meanings.length > 0}}">
             <view class="polysemy-drawer-header">
-              <text class="polysemy-tip">💡 点击以下其他释义，AI 将按新词义重新创作故事：</text>
+              <text class="polysemy-tip">💡 选择其他释义填入输入框，点击上方「串联记忆」即可生成：</text>
             </view>
             <view class="polysemy-list">
-              <view class="polysemy-option" wx:for="{{item.alt_meanings}}" wx:for-item="alt" wx:key="def" data-word="{{item.word}}" data-def="{{alt.def}}" bindtap="switchWordMeaningAndRegenerate">
+              <view class="polysemy-option" wx:for="{{item.alt_meanings}}" wx:for-item="alt" wx:key="def" data-word="{{item.word}}" data-def="{{alt.def}}" bindtap="selectWordMeaning">
                 <view class="alt-left">
                   <text class="alt-pos" wx:if="{{alt.pos}}">{{alt.pos}}</text>
                   <text class="alt-def">{{alt.def}}</text>
                 </view>
                 <view class="alt-action-btn">
-                  <text>一键换义 ➜</text>
+                  <text>换用此义</text>
                 </view>
               </view>
             </view>

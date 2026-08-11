@@ -939,7 +939,7 @@ Page({
     });
   },
 
-  switchWordMeaningAndRegenerate(e) {
+  selectWordMeaning(e) {
     const word = (e.currentTarget.dataset.word || '').trim();
     const def = (e.currentTarget.dataset.def || '').trim();
     if (!word || !def) return;
@@ -972,15 +972,10 @@ Page({
     });
 
     wx.showToast({
-      title: `已切换为【${word} (${shortDef})】`,
-      icon: 'none',
-      duration: 1800
+      title: `已选定【${word}(${shortDef})】`,
+      icon: 'success',
+      duration: 1600
     });
-
-    // Auto trigger regeneration with new meaning
-    setTimeout(() => {
-      this.handleGeneration();
-    }, 350);
   },
 
   // Main generator trigger

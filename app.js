@@ -869,8 +869,8 @@ JSON Schema 结构：
         };
     }
 
-    // Helper to switch polysemy meaning and regenerate
-    function switchMeaningAndRegenerate(word, def) {
+    // Helper to select polysemy meaning into input box
+    function selectMeaning(word, def) {
         const shortDef = def.split(/[；;,]/)[0].trim();
         const currentInput = elements.wordsInput.value.trim();
         const tokens = currentInput.split(/[,，;；\n]+/).map(t => t.trim()).filter(Boolean);
@@ -890,10 +890,7 @@ JSON Schema 结构：
         }
 
         elements.wordsInput.value = newTokens.join(', ');
-        showToast(`已切换为【${word} (${shortDef})】，正在重新构思趣味故事...`, 'info');
-        setTimeout(() => {
-            handleGeneration();
-        }, 300);
+        showToast(`已选定【${word}(${shortDef})】，点击「串联记忆」即可生成！`, 'success');
     }
 
     // Render results dashboard
@@ -917,7 +914,7 @@ JSON Schema 结构：
             if (hasAltMeanings) {
                 altMeaningsHtml = `
                     <div class="polysemy-drawer hidden" id="polysemy-drawer-${index}">
-                        <div class="polysemy-drawer-header">💡 点击以下其他释义，AI 将按新词义重新创作故事：</div>
+                        <div class="polysemy-drawer-header">💡 选择其他释义填入输入框，点击上方「串联记忆」即可生成：</div>
                         <div class="polysemy-list">
                             ${item.alt_meanings.map(alt => `
                                 <div class="polysemy-option" data-word="${item.word}" data-def="${alt.def}">
@@ -925,7 +922,7 @@ JSON Schema 结构：
                                         ${alt.pos ? `<span class="alt-pos">${alt.pos}</span>` : ''}
                                         <span class="alt-def">${alt.def}</span>
                                     </div>
-                                    <button class="alt-action-btn">一键换义 ➜</button>
+                                    <button class="alt-action-btn">换用此义</button>
                                 </div>
                             `).join('')}
                         </div>
@@ -979,7 +976,7 @@ JSON Schema 结构：
                     e.stopPropagation();
                     const word = opt.getAttribute('data-word');
                     const def = opt.getAttribute('data-def');
-                    switchMeaningAndRegenerate(word, def);
+                    selectMeaning(word, def);
                 });
             });
             
