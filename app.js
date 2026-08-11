@@ -325,22 +325,52 @@ document.addEventListener('DOMContentLoaded', () => {
             elements.vocabApplyBtn.addEventListener('click', applySelectedVocab);
         }
 
-        // Story Length Selector Listeners
-        const lengthPills = document.querySelectorAll('.length-pill');
-        lengthPills.forEach(pill => {
-            const len = pill.getAttribute('data-len');
-            if (len === state.storyLength) {
-                pill.classList.add('active');
-            } else {
-                pill.classList.remove('active');
+        // Story Length Range Slider Listeners
+        const lengthSlider = document.getElementById('story-length-slider');
+        const sliderBadge = document.getElementById('slider-current-badge');
+        const scaleLabels = document.querySelectorAll('.slider-scale-labels .scale-item');
+        const lengthConfig = {
+            1: { key: 'short', icon: '⚡', title: '极简速记', desc: '1-2 句' },
+            2: { key: 'medium', icon: '📖', title: '标准故事', desc: '3-4 句' },
+            3: { key: 'long', icon: '🌟', title: '沉浸长篇', desc: '5-6 句' }
+        };
+
+        function updateSliderUI(val) {
+            const numVal = parseInt(val, 10) || 2;
+            const info = lengthConfig[numVal] || lengthConfig[2];
+            state.storyLength = info.key;
+            localStorage.setItem('storyLength', info.key);
+            localStorage.setItem('storyLengthSliderVal', numVal);
+
+            if (sliderBadge) {
+                sliderBadge.innerHTML = `<span class="badge-icon">${info.icon}</span><span class="badge-text">${info.title} · ${info.desc}</span>`;
             }
-            pill.addEventListener('click', () => {
-                const selectedLen = pill.getAttribute('data-len');
-                if (!selectedLen) return;
-                state.storyLength = selectedLen;
-                localStorage.setItem('storyLength', selectedLen);
-                lengthPills.forEach(p => p.classList.remove('active'));
-                pill.classList.add('active');
+            if (lengthSlider) {
+                lengthSlider.value = numVal;
+            }
+            scaleLabels.forEach(label => {
+                const labelVal = parseInt(label.getAttribute('data-val'), 10);
+                if (labelVal === numVal) {
+                    label.classList.add('scale-active');
+                } else {
+                    label.classList.remove('scale-active');
+                }
+            });
+        }
+
+        const savedSliderVal = localStorage.getItem('storyLengthSliderVal') || (state.storyLength === 'short' ? 1 : state.storyLength === 'long' ? 3 : 2);
+        updateSliderUI(savedSliderVal);
+
+        if (lengthSlider) {
+            lengthSlider.addEventListener('input', (e) => {
+                updateSliderUI(e.target.value);
+            });
+        }
+
+        scaleLabels.forEach(label => {
+            label.addEventListener('click', () => {
+                const val = label.getAttribute('data-val');
+                updateSliderUI(val);
             });
         });
 

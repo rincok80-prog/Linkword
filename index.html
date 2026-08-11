@@ -85,22 +85,22 @@
                         </button>
                     </div>
 
-                    <!-- Story Length Selector -->
-                    <div class="length-selector-wrap">
-                        <span class="length-label">故事篇幅：</span>
-                        <div class="length-options">
-                            <button class="length-pill" data-len="short" title="1-2句话，极速记忆">
-                                <span class="pill-icon">⚡</span>
-                                <span>极简 (1-2句)</span>
-                            </button>
-                            <button class="length-pill active" data-len="medium" title="3-4句话，情节完整">
-                                <span class="pill-icon">📖</span>
-                                <span>标准 (3-4句)</span>
-                            </button>
-                            <button class="length-pill" data-len="long" title="5-6句话，沉浸丰富">
-                                <span class="pill-icon">🌟</span>
-                                <span>长篇 (5-6句)</span>
-                            </button>
+                    <!-- Interactive Story Length Slider Bar -->
+                    <div class="length-slider-container">
+                        <div class="slider-header">
+                            <span class="slider-label">故事篇幅调节</span>
+                            <div id="slider-current-badge" class="slider-current-badge">
+                                <span class="badge-icon">📖</span>
+                                <span class="badge-text">标准故事 · 3-4 句</span>
+                            </div>
+                        </div>
+                        <div class="slider-track-wrap">
+                            <input type="range" id="story-length-slider" min="1" max="3" step="1" value="2" class="custom-range-slider">
+                        </div>
+                        <div class="slider-scale-labels">
+                            <span class="scale-item" data-val="1">⚡ 极简 (1-2句)</span>
+                            <span class="scale-item scale-active" data-val="2">📖 标准 (3-4句)</span>
+                            <span class="scale-item" data-val="3">🌟 长篇 (5-6句)</span>
                         </div>
                     </div>
 

@@ -12,6 +12,12 @@ const loadingTips = [
   "AI 老师正在为您生成朗读发音数据..."
 ];
 
+const LENGTH_MAP = {
+  1: { key: 'short', icon: '⚡', title: '极简速记', desc: '1-2 句' },
+  2: { key: 'medium', icon: '📖', title: '标准故事', desc: '3-4 句' },
+  3: { key: 'long', icon: '🌟', title: '沉浸长篇', desc: '5-6 句' }
+};
+
 Page({
   data: {
     wordsInputValue: "",
@@ -46,7 +52,9 @@ Page({
     selectedVocabMap: {},
     selectedVocabCount: 0,
     filteredVocabList: [],
-    storyLength: "medium"
+    storyLengthValue: 2,
+    storyLength: "medium",
+    storyLengthInfo: { icon: '📖', title: '标准故事', desc: '3-4 句' }
   },
 
   vocabSearchTimer: null,
@@ -56,6 +64,20 @@ Page({
     this.calculateNavHeight();
     this.loadFavorites();
     this.initVocabList();
+    this.initStoryLengthSlider();
+  },
+
+  initStoryLengthSlider() {
+    try {
+      const savedVal = wx.getStorageSync('story_length_slider_val') || 2;
+      const numVal = parseInt(savedVal, 10) || 2;
+      const info = LENGTH_MAP[numVal] || LENGTH_MAP[2];
+      this.setData({
+        storyLengthValue: numVal,
+        storyLength: info.key,
+        storyLengthInfo: info
+      });
+    } catch (e) {}
   },
 
   calculateNavHeight() {
@@ -864,14 +886,41 @@ Page({
     }
   },
 
-  setStoryLength(e) {
-    const len = e.currentTarget.dataset.len;
-    if (!len) return;
+  onLengthSliderChanging(e) {
+    const val = parseInt(e.detail.value, 10) || 2;
+    const info = LENGTH_MAP[val] || LENGTH_MAP[2];
     this.setData({
-      storyLength: len
+      storyLengthValue: val,
+      storyLength: info.key,
+      storyLengthInfo: info
+    });
+  },
+
+  onLengthSliderChange(e) {
+    const val = parseInt(e.detail.value, 10) || 2;
+    const info = LENGTH_MAP[val] || LENGTH_MAP[2];
+    this.setData({
+      storyLengthValue: val,
+      storyLength: info.key,
+      storyLengthInfo: info
     });
     try {
-      wx.setStorageSync('story_length_pref', len);
+      wx.setStorageSync('story_length_slider_val', val);
+      wx.setStorageSync('story_length_pref', info.key);
+    } catch (err) {}
+  },
+
+  onScaleTap(e) {
+    const val = parseInt(e.currentTarget.dataset.val, 10) || 2;
+    const info = LENGTH_MAP[val] || LENGTH_MAP[2];
+    this.setData({
+      storyLengthValue: val,
+      storyLength: info.key,
+      storyLengthInfo: info
+    });
+    try {
+      wx.setStorageSync('story_length_slider_val', val);
+      wx.setStorageSync('story_length_pref', info.key);
     } catch (err) {}
   },
 

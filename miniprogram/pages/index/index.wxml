@@ -55,22 +55,33 @@
         </view>
       </view>
 
-      <!-- Length Selector Segmented Control -->
-      <view class="length-selector-wrap">
-        <text class="length-label">故事篇幅：</text>
-        <view class="length-options">
-          <view class="length-pill {{storyLength === 'short' ? 'active' : ''}}" data-len="short" bindtap="setStoryLength">
-            <text class="pill-icon">⚡</text>
-            <text>极简 (1-2句)</text>
+      <!-- Interactive Story Length Slider Bar -->
+      <view class="length-slider-container">
+        <view class="slider-header">
+          <text class="slider-label">故事篇幅调节</text>
+          <view class="slider-current-badge">
+            <text class="badge-icon">{{storyLengthInfo.icon}}</text>
+            <text class="badge-text">{{storyLengthInfo.title}} · {{storyLengthInfo.desc}}</text>
           </view>
-          <view class="length-pill {{storyLength === 'medium' ? 'active' : ''}}" data-len="medium" bindtap="setStoryLength">
-            <text class="pill-icon">📖</text>
-            <text>标准 (3-4句)</text>
-          </view>
-          <view class="length-pill {{storyLength === 'long' ? 'active' : ''}}" data-len="long" bindtap="setStoryLength">
-            <text class="pill-icon">🌟</text>
-            <text>长篇 (5-6句)</text>
-          </view>
+        </view>
+        <view class="slider-track-wrap">
+          <slider
+            min="1"
+            max="3"
+            step="1"
+            value="{{storyLengthValue}}"
+            bindchange="onLengthSliderChange"
+            bindchanging="onLengthSliderChanging"
+            activeColor="#4f46e5"
+            backgroundColor="#e2e8f0"
+            block-size="22"
+            block-color="#4f46e5"
+          />
+        </view>
+        <view class="slider-scale-labels">
+          <text class="scale-item {{storyLengthValue === 1 ? 'scale-active' : ''}}" data-val="1" bindtap="onScaleTap">⚡ 极简 (1-2句)</text>
+          <text class="scale-item {{storyLengthValue === 2 ? 'scale-active' : ''}}" data-val="2" bindtap="onScaleTap">📖 标准 (3-4句)</text>
+          <text class="scale-item {{storyLengthValue === 3 ? 'scale-active' : ''}}" data-val="3" bindtap="onScaleTap">🌟 长篇 (5-6句)</text>
         </view>
       </view>
 
