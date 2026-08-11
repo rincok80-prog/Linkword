@@ -67,6 +67,9 @@ Page({
     showHistory: false,
     currentTip: loadingTips[0],
     tipIntervalId: null,
+    loadingTapCount: 0,
+    floatingBubbles: [],
+    recentBurst: null,
     audioContext: null,
     navHeight: 64, // default fallback
     showCropEditor: false,
@@ -1294,11 +1297,35 @@ Page({
     }
 
     this.stopAudio();
+
+    const colors = [
+      'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+      'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+      'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)',
+      'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+      'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)'
+    ];
+
+    const bubbles = validWords.map((w, idx) => {
+      const cleanWord = w.split(/[\(（:：]/)[0].trim();
+      return {
+        id: idx,
+        word: cleanWord,
+        x: 8 + (idx * 28) % 72,
+        y: 20 + (idx * 45) % 150,
+        color: colors[idx % colors.length],
+        popped: false
+      };
+    });
+
     this.setData({
       isGenerating: true,
       showEmptyState: false,
       showOutput: false,
-      activePolysemyIndex: -1
+      activePolysemyIndex: -1,
+      loadingTapCount: 0,
+      floatingBubbles: bubbles,
+      recentBurst: null
     });
     this.startLoadingTips();
 
@@ -1434,6 +1461,42 @@ Page({
         tipIntervalId: null
       });
     }
+  },
+
+  onTapFloatingBubble(e) {
+    const id = parseInt(e.currentTarget.dataset.id, 10);
+    const bubbles = [...this.data.floatingBubbles];
+    const item = bubbles.find(b => b.id === id);
+    if (!item) return;
+
+    try {
+      wx.vibrateShort({ type: 'medium' });
+    } catch (err) {}
+
+    const count = this.data.loadingTapCount + 1;
+    item.popped = true;
+
+    const burstTexts = ['+100 🧠 记忆力', '✨ 灵感连击!', '🎉 Perfect!', '⚡ 故事力爆棚!', '🌟 词义链接中!'];
+    const burstText = burstTexts[count % burstTexts.length];
+
+    this.setData({
+      loadingTapCount: count,
+      floatingBubbles: bubbles,
+      recentBurst: {
+        x: item.x,
+        y: Math.max(10, item.y - 30),
+        text: burstText
+      }
+    });
+
+    setTimeout(() => {
+      item.popped = false;
+      item.x = Math.floor(Math.random() * 70) + 10;
+      item.y = Math.floor(Math.random() * 140) + 10;
+      this.setData({
+        floatingBubbles: bubbles
+      });
+    }, 450);
   },
 
   // Story TTS audio player

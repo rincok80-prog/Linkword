@@ -100,6 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
         quizViewStoryBtn: document.getElementById('quiz-view-story-btn'),
         quizTransSection: document.getElementById('quiz-trans-section'),
         quizStoryTranslation: document.getElementById('quiz-story-translation'),
+
+        // Interactive Loading Playground
+        interactiveLoadingCard: document.getElementById('interactive-loading-card'),
+        loadingStatusSub: document.getElementById('loading-status-sub'),
+        webComboNum: document.getElementById('web-combo-num'),
+        webFloatingBubblesArea: document.getElementById('web-floating-bubbles-area'),
+        webBurstSparksLayer: document.getElementById('web-burst-sparks-layer')
     };
 
     // App State
@@ -108,20 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
         apiKey: '',
         apiEndpoint: '',
         apiModel: '',
+        storyLength: 'short',
+        currentStory: null,
         history: [],
-        currentStory: '',
-        activeTab: 'camera', // 'camera' or 'upload'
-        stream: null,
-        selectedImageBase64: null,
-        selectedImageMime: null,
-        selectedVocabMap: {},
-        vocabSearchQuery: '',
-        storyLength: localStorage.getItem('storyLength') || 'short',
+        favorites: [],
+        cameraStream: null,
+        selectedImageFile: null,
+        selectedVocabSet: new Set(),
+        loadingTapCount: 0,
+        // Quiz State
         isQuizMode: false,
+        quizCompleted: false,
         clozeTokens: [],
         quizWordBank: [],
-        activeBlankIndex: 0,
-        quizCompleted: false,
+        activeBlankIndex: -1,
         currentResult: null
     };
 
@@ -694,8 +701,11 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 tipEl.textContent = loadingTips[index];
                 tipEl.style.opacity = '1';
+                if (elements.loadingStatusSub) {
+                    elements.loadingStatusSub.textContent = loadingTips[index];
+                }
             }, 300);
-        }, 3000);
+        }, 1200);
     }
 
     function stopLoadingTips() {
@@ -703,6 +713,61 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(loadingTipInterval);
             loadingTipInterval = null;
         }
+    }
+
+    function renderWebFloatingBubbles(words) {
+        if (!elements.webFloatingBubblesArea) return;
+        elements.webFloatingBubblesArea.innerHTML = '';
+        state.loadingTapCount = 0;
+        if (elements.webComboNum) elements.webComboNum.textContent = '0';
+
+        const colors = [
+            'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+            'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+            'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)',
+            'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)'
+        ];
+
+        words.forEach((w, idx) => {
+            const cleanWord = w.split(/[\(（:：]/)[0].trim();
+            const bubble = document.createElement('div');
+            bubble.className = 'floating-bubble';
+            const left = 8 + (idx * 28) % 72;
+            const top = 10 + (idx * 30) % 75;
+            bubble.style.left = `${left}%`;
+            bubble.style.top = `${top}px`;
+            bubble.style.background = colors[idx % colors.length];
+            bubble.innerHTML = `<span class="bubble-word">${cleanWord}</span>`;
+
+            bubble.addEventListener('click', () => {
+                state.loadingTapCount++;
+                if (elements.webComboNum) elements.webComboNum.textContent = state.loadingTapCount;
+
+                bubble.classList.add('popped');
+                
+                // Spawn pop text
+                if (elements.webBurstSparksLayer) {
+                    const popText = document.createElement('span');
+                    popText.className = 'burst-pop-text';
+                    popText.style.left = `${left}%`;
+                    popText.style.top = `${Math.max(5, top - 15)}px`;
+                    const burstTexts = ['+100 🧠 记忆力', '✨ 灵感连击!', '🎉 Perfect!', '⚡ 故事力爆棚!', '🌟 词义链接中!'];
+                    popText.textContent = burstTexts[state.loadingTapCount % burstTexts.length];
+                    elements.webBurstSparksLayer.appendChild(popText);
+
+                    setTimeout(() => popText.remove(), 600);
+                }
+
+                setTimeout(() => {
+                    bubble.classList.remove('popped');
+                    bubble.style.left = `${Math.floor(Math.random() * 70) + 10}%`;
+                    bubble.style.top = `${Math.floor(Math.random() * 70) + 10}px`;
+                }, 450);
+            });
+
+            elements.webFloatingBubblesArea.appendChild(bubble);
+        });
     }
 
     // Main logic for handling word memory generation
@@ -716,7 +781,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show loading state
         elements.emptyState.classList.add('hidden');
         elements.outputPanel.classList.add('hidden');
-        elements.loadingSkeleton.classList.remove('hidden');
+        if (elements.interactiveLoadingCard) {
+            elements.interactiveLoadingCard.classList.remove('hidden');
+        } else if (elements.loadingSkeleton) {
+            elements.loadingSkeleton.classList.remove('hidden');
+        }
+        renderWebFloatingBubbles(words);
         startLoadingTips();
         elements.generateBtn.disabled = true;
         elements.generateBtn.querySelector('.spinner').classList.remove('hidden');
@@ -747,7 +817,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 elements.emptyState.classList.remove('hidden');
             }
         } finally {
-            elements.loadingSkeleton.classList.add('hidden');
+            if (elements.interactiveLoadingCard) {
+                elements.interactiveLoadingCard.classList.add('hidden');
+            }
+            if (elements.loadingSkeleton) {
+                elements.loadingSkeleton.classList.add('hidden');
+            }
             stopLoadingTips();
             elements.generateBtn.disabled = false;
             elements.generateBtn.querySelector('.spinner').classList.add('hidden');

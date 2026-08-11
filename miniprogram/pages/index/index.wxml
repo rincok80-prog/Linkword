@@ -119,16 +119,48 @@
       <text class="empty-desc">输入 2 个或更多英文单词，AI 将其串联成一段生动的趣味小故事，帮您轻松记住！</text>
     </view>
 
-    <!-- Loading Skeleton Card -->
-    <view class="loading-card" wx:if="{{isGenerating}}">
-      <view class="loading-skeleton-title skeleton-blink"></view>
-      <view class="loading-skeleton-text skeleton-blink"></view>
-      <view class="loading-skeleton-text skeleton-blink"></view>
-      <view class="loading-skeleton-text half-width skeleton-blink"></view>
+    <!-- Interactive Loading Playground Card -->
+    <view class="loading-interactive-card" wx:if="{{isGenerating}}">
+      <view class="loading-bg-glow"></view>
       
-      <view class="loading-tip-container">
-        <text class="loading-tip-title">⚡ AI 正在疯狂联想中...</text>
-        <text class="loading-tip-text">{{currentTip}}</text>
+      <!-- Holographic Pulse Core -->
+      <view class="holo-core-group">
+        <view class="holo-pulse-ring ring-1"></view>
+        <view class="holo-pulse-ring ring-2"></view>
+        <view class="holo-center-brain">
+          <text class="brain-emoji">🧠</text>
+          <text class="brain-sparkle">✨</text>
+        </view>
+      </view>
+
+      <view class="loading-status-info">
+        <text class="loading-status-title">⚡ AI 脑暴灵感构思中...</text>
+        <text class="loading-status-sub">{{currentTip}}</text>
+      </view>
+
+      <!-- Interactive Tap Floating Word Bubbles Area -->
+      <view class="interactive-word-playground">
+        <view class="playground-hint">
+          <text class="hint-icon">👆</text>
+          <text class="hint-text">轻点浮动药丸释放灵感！已触发 <text class="combo-num">{{loadingTapCount}}</text> 次内存连击</text>
+        </view>
+        
+        <view class="floating-bubbles-area">
+          <block wx:for="{{floatingBubbles}}" wx:key="id">
+            <view class="floating-bubble {{item.popped ? 'popped' : ''}}" 
+                  style="left: {{item.x}}%; top: {{item.y}}rpx; background: {{item.color}};"
+                  data-id="{{item.id}}" 
+                  bindtap="onTapFloatingBubble">
+              <text class="bubble-word">{{item.word}}</text>
+              <text class="bubble-sparkle" wx:if="{{item.popped}}">+100 🧠</text>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <!-- Sparkle Burst Effects -->
+      <view class="burst-sparks-layer" wx:if="{{recentBurst}}">
+        <text class="burst-pop-text" style="left: {{recentBurst.x}}%; top: {{recentBurst.y}}rpx;">{{recentBurst.text}}</text>
       </view>
     </view>
 

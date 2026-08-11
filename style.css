@@ -857,6 +857,215 @@ button {
     background: rgba(99, 102, 241, 0.16);
 }
 
+/* ========================================================
+   🎮 Interactive Loading Card Playground Styles (Web)
+   ======================================================== */
+.loading-interactive-card {
+    position: relative;
+    background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%);
+    border: 2px solid rgba(99, 102, 241, 0.4);
+    border-radius: 16px;
+    padding: 24px 20px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2);
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.loading-interactive-card.hidden {
+    display: none !important;
+}
+
+.loading-bg-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+    animation: rotateGlow 12s linear infinite;
+    pointer-events: none;
+}
+
+.holo-core-group {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.holo-pulse-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+}
+
+.holo-pulse-ring.ring-1 {
+    width: 64px;
+    height: 64px;
+    animation: ringPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.holo-pulse-ring.ring-2 {
+    width: 80px;
+    height: 80px;
+    border-color: rgba(236, 72, 153, 0.4);
+    animation: ringPulse 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s;
+}
+
+.holo-center-brain {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
+    z-index: 2;
+}
+
+.brain-emoji {
+    font-size: 24px;
+    animation: floatBrain 1.8s ease-in-out infinite alternate;
+}
+
+.brain-sparkle {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 14px;
+    animation: spinSparkle 2s linear infinite;
+}
+
+.loading-status-info {
+    text-align: center;
+    z-index: 2;
+    margin-bottom: 16px;
+}
+
+.loading-status-title {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+    margin-bottom: 4px;
+}
+
+.loading-status-sub {
+    display: block;
+    font-size: 12px;
+    color: rgba(226, 232, 240, 0.85);
+    padding: 3px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.interactive-word-playground {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 2;
+}
+
+.playground-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.hint-icon {
+    font-size: 14px;
+    animation: tapBounce 0.8s ease-in-out infinite alternate;
+}
+
+.hint-text {
+    font-size: 12px;
+    color: rgba(203, 213, 225, 0.8);
+}
+
+.combo-num {
+    color: #f43f5e;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 0 2px;
+}
+
+.floating-bubbles-area {
+    position: relative;
+    width: 100%;
+    height: 110px;
+}
+
+.floating-bubble {
+    position: absolute;
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: floatBubble 3s ease-in-out infinite alternate;
+    cursor: pointer;
+    user-select: none;
+}
+
+.floating-bubble:active {
+    transform: scale(0.85);
+}
+
+.floating-bubble.popped {
+    transform: scale(1.35) rotate(12deg);
+    opacity: 0.7;
+}
+
+.bubble-word {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+}
+
+.burst-sparks-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.burst-pop-text {
+    position: absolute;
+    font-size: 13px;
+    font-weight: 800;
+    color: #38bdf8;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+    animation: popTextRise 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 .cloze-story-box {
     font-size: 15px;
     color: var(--text-primary);
