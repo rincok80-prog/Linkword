@@ -1293,23 +1293,6 @@ Page({
       return;
     }
 
-    const cacheKey = 'lw_cache_' + validWords.join('_') + '_' + (this.data.storyLength || 'short') + '_' + (this.data.selectedStyle || 'humorous');
-    try {
-      const cached = wx.getStorageSync(cacheKey);
-      if (cached && cached.story && cached.words) {
-        this.renderResult(cached);
-        this.setData({
-          isGenerating: false,
-          showOutput: true
-        });
-        wx.showToast({
-          title: '秒极速加载 (0.01s)',
-          icon: 'success'
-        });
-        return;
-      }
-    } catch (e) {}
-
     this.stopAudio();
     this.setData({
       isGenerating: true,
@@ -1347,7 +1330,6 @@ Page({
         }
 
         const data = res.data;
-        try { wx.setStorageSync(cacheKey, data); } catch (e) {}
         this.renderResult(data);
         this.saveHistoryItem(validWords, data);
         this.setData({
@@ -1375,15 +1357,43 @@ Page({
     });
   },
 
+  repairVocabItem(item) {
+    if (!item || !item.word) return item;
+
+    const targetWord = item.word.trim().toLowerCase();
+    const isBogusDef = !item.definition || item.definition.includes('核心') || item.definition.includes('常用') || item.definition.includes('释义') || item.definition.includes('本地');
+    const isBogusIpa = !item.ipa || item.ipa.includes('dʒl') || item.ipa === '/.../';
+    const isBogusPos = !item.pos || item.pos === 'n./v./adj.';
+    const isBogusSentence = !item.sentence || item.sentence.includes('Always practice using') || item.sentence.includes('local fallback sentence');
+
+    if ((isBogusDef || isBogusIpa || isBogusPos) && allVocabPool && allVocabPool.length > 0) {
+      const match = allVocabPool.find(v => v.word.toLowerCase() === targetWord);
+      if (match) {
+        if (isBogusDef && match.def) item.definition = match.def;
+        if (isBogusIpa && match.phonetic) item.ipa = match.phonetic;
+        if (isBogusPos && match.pos) item.pos = match.pos;
+      }
+    }
+
+    if (isBogusSentence) {
+      item.sentence = `Please practice using [${item.word}] in daily context.`;
+    }
+
+    return item;
+  },
+
   // Parse result from JSON backend and map to page state
   renderResult(data) {
     const favs = wx.getStorageSync('favoritesList') || [];
     const favMap = new Map(favs.map(f => [f.word.toLowerCase(), true]));
 
-    const words = (data.words || []).map(item => ({
-      ...item,
-      isFavorite: favMap.has(item.word.toLowerCase())
-    }));
+    const words = (data.words || []).map(rawItem => {
+      const item = this.repairVocabItem({ ...rawItem });
+      return {
+        ...item,
+        isFavorite: favMap.has(item.word.toLowerCase())
+      };
+    });
 
     this.setData({
       storyHtml: data.story || "",

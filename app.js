@@ -713,19 +713,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const cacheKey = 'lw_web_cache_' + words.map(w => typeof w === 'string' ? w : (w.word || '')).join('_') + '_' + (state.storyLength || 'short') + '_' + (state.selectedStyle || 'humorous');
-        const cachedRaw = localStorage.getItem(cacheKey);
-        if (cachedRaw) {
-            try {
-                const cachedResult = JSON.parse(cachedRaw);
-                if (cachedResult && cachedResult.story && cachedResult.words) {
-                    renderResult(cachedResult);
-                    showToast('秒级极速加载 (0.01s)', 'success');
-                    return;
-                }
-            } catch (e) {}
-        }
-
         // Show loading state
         elements.emptyState.classList.add('hidden');
         elements.outputPanel.classList.add('hidden');
@@ -749,7 +736,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 result = await fetchAIResult(words);
             }
 
-            try { localStorage.setItem(cacheKey, JSON.stringify(result)); } catch (e) {}
             renderResult(result);
             saveHistoryItem(words, result);
             showToast('生成成功!', 'success');
@@ -992,9 +978,38 @@ JSON Schema 结构：
         showToast(`已选定【${word}(${shortDef})】，点击「串联记忆」即可生成！`, 'success');
     }
 
+    function repairVocabItem(item) {
+        if (!item || !item.word) return item;
+
+        const targetWord = item.word.trim().toLowerCase();
+        const isBogusDef = !item.definition || item.definition.includes('核心') || item.definition.includes('常用') || item.definition.includes('释义') || item.definition.includes('本地');
+        const isBogusIpa = !item.ipa || item.ipa.includes('dʒl') || item.ipa === '/.../';
+        const isBogusPos = !item.pos || item.pos === 'n./v./adj.';
+        const isBogusSentence = !item.sentence || item.sentence.includes('Always practice using') || item.sentence.includes('local fallback sentence');
+
+        if ((isBogusDef || isBogusIpa || isBogusPos) && window.VOCAB_DATABASE && window.VOCAB_DATABASE.length > 0) {
+            const match = window.VOCAB_DATABASE.find(v => v.word.toLowerCase() === targetWord);
+            if (match) {
+                if (isBogusDef && match.def) item.definition = match.def;
+                if (isBogusIpa && match.phonetic) item.ipa = match.phonetic;
+                if (isBogusPos && match.pos) item.pos = match.pos;
+            }
+        }
+
+        if (isBogusSentence) {
+            item.sentence = `Please practice using [${item.word}] in daily context.`;
+        }
+
+        return item;
+    }
+
     // Render results dashboard
     function renderResult(result) {
         if (!result) return;
+
+        if (result.words && Array.isArray(result.words)) {
+            result.words = result.words.map(w => repairVocabItem({ ...w }));
+        }
         
         state.currentStory = result.story;
         elements.storyContent.innerHTML = result.story;

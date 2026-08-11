@@ -31,7 +31,15 @@ export async function onRequestPost(context) {
             });
         }
         
+        // Environment Variable priority
         const GEMINI_KEY = env.GEMINI_KEY || "";
+        
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'Missing GEMINI_KEY environment variable. Please configure it in your Cloudflare dashboard.' }), {
+                status: 400,
+                headers: corsHeaders
+            });
+        }
         
         const parsedWords = words.map(item => {
             if (typeof item === 'string') {
@@ -90,193 +98,169 @@ export async function onRequestPost(context) {
             "时光穿越者在古代闹出的荒诞趣事",
             "大侦探在破解离奇谜案时的意外神反转",
             "超级英雄度假期间啼笑皆非的日常生活",
-            "宠物猫狗秘密策划的拯救零食大行动"
+            "深海王国里海洋生物举办的奇幻派对",
+            "未来太空站里宇航员与傲娇机器人的逗趣互动",
+            "宠物猫狗秘密策划的拯救零食大行动",
+            "午夜奇幻游乐园里发生的不可思议奇遇",
+            "神秘古堡探险时发现的搞笑宝藏",
+            "魔法学院新生上第一堂飞行课的爆笑瞬间",
+            "咖啡馆里一杯神奇饮品引发的连锁奇趣反应",
+            "秘密特工执行任务时的滑稽意外"
         ];
 
         const randomTheme = creativeThemes[Math.floor(Math.random() * creativeThemes.length)];
         const randomSeed = Math.floor(Math.random() * 1000000);
 
-        const maxTokens = length === 'short' ? 190 : length === 'medium' ? 320 : 450;
+        const prompt = `您是英语教学与联想记忆创意大师。
+目标单词列表：[${promptWordItems.join(', ')}]。
+整体风格：【${styleDesc}】
+本次灵感场景设定：【${randomTheme}】（创作编号: ${randomSeed}）
+${lengthNote}
+${hasSpecifiedMeanings ? '【强制词义约束】：如果某个单词标注了【强制指定含义】，故事剧情与例句必须 100% 严格采用该指定释义，绝对严禁使用其他无关的常见释义！' : ''}
 
-        const prompt = `您是英语教学大师。请为单词列表: [${promptWordItems.join(', ')}] 创作极简趣味联想微故事。
-灵感场景: 【${randomTheme}】（编号: ${randomSeed}）。
-要求：
-1. 篇幅：【${lengthNote}】，${lengthDesc}。
-${hasSpecifiedMeanings ? '2. 强制词义约束：带【强制指定含义】的单词必须100%采用指定释义。' : ''}
-3. 故事中目标词用 <strong>单词</strong> 加粗。
-4. 提供音标、词性、故事中的含义、5-8词极简例句，以及 2 个该词的其他常用中文释义(alt_meanings)。
+请用通俗易懂的初中词汇，根据上述要求${lengthDesc}，帮助学生通过场景联想牢固记住这几个单词。
 
-必须输出无额外说明的纯 JSON 格式：
+【关键要求】：
+1. 篇幅长度必须严格符合【${lengthNote}】！
+2. 每次构思必须具备独创性与新鲜感，采用全新的故事角色、情节与视角，绝对不要重复以往的套路！
+3. 故事中必须自然包含所有目标词，并用 <strong>目标词</strong> 标签加粗标出。
+4. 为每个目标词提供全新的通俗例句（5-8个词，结合当前语境）。
+5. 针对每个单词，请在 alt_meanings 中列出 2-3 个该词在考试/日常中的【其他不同常用中文含义】，以便学生学习一词多义。
+6. 【真实准确词条要求】：words 数组中每个单词的 ipa（音标）、pos（词性）、definition（中文释义）必须是该单词真实准确的大纲词典信息（如 ignore 必须给出 v. 忽视；不理，IPA 给出真实音标 /ɪɡˈnɔːr/），绝对严禁输出任何类似'核心常用释义'、'n./v./adj.'或'Always practice using'等敷衍性占位字符！
+
+请严格以无任何额外解释、纯 JSON 格式输出：
 {
-  "story": "英文微故事（包含 <strong>单词</strong>）",
-  "story_translation": "中文对照翻译",
+  "story": "微故事英文内容（必须自然包含所有输入单词，并用 <strong>单词</strong> 加粗）",
+  "story_translation": "通俗生动的中文对照翻译",
   "words": [
     {
-      "word": "plant",
-      "ipa": "/plænt/",
-      "pos": "n.",
-      "definition": "工厂",
-      "sentence": "He works in a plant.",
+      "word": "单词原形（例如 plant）",
+      "ipa": "美式音标，例如 /'prɪstiːn/",
+      "pos": "词性，例如 n.",
+      "definition": "当前故事中采用的中文释义（若有指定含义请严格使用该含义）",
+      "sentence": "5-8个词的极其简单的新例句",
       "alt_meanings": [
-        { "pos": "n.", "def": "植物" }
+        { "pos": "n.", "def": "其他常用释义1" },
+        { "pos": "v.", "def": "其他常用释义2" }
       ]
     }
   ]
-}`;
+}
 
-        const SILICON_KEY = env.SILICONFLOW_KEY || "sk-caucwtkqzlmewpazllitwirjdyvfvqtmyusvwffqvtjhtprm";
+注意：为了防止 JSON 解析失败，字符串内如有引号请使用单引号（'），严禁在 JSON 属性值内直接使用未转义的双引号（"）。`;
+
+        // 1. Primary Engine: WeChat Official Coding Plan AI (Deepseek-v4-flash)
         const WECHAT_TOKEN = env.WECHAT_AI_TOKEN || "eNN5jggBEAEaHwgBEhsxNzg2MzU1NDc2NjQwNjEzODIyWXBBbG9OMEMiGAgDEhQIAxIQbflVtDgf67nkYU9Hlvbr9w==";
+        
+        try {
+            const wechatResp = await fetch("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${WECHAT_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "Deepseek-v4-flash",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a creative English learning assistant. Always generate unique, imaginative, and distinct stories on every single request. Output ONLY pure, valid JSON format strings."
+                        },
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.9,
+                    top_p: 0.95
+                })
+            });
+
+            if (wechatResp.ok) {
+                const wechatJson = await wechatResp.json();
+                let rawText = wechatJson?.choices?.[0]?.message?.content || "";
+                rawText = rawText.trim();
+                
+                if (rawText.startsWith("```")) {
+                    rawText = rawText.replace(/^```[a-zA-Z]*\n?/, "");
+                }
+                if (rawText.endsWith("```")) {
+                    rawText = rawText.replace(/```$/, "");
+                }
+                rawText = rawText.trim();
+
+                const firstBrace = rawText.indexOf('{');
+                const lastBrace = rawText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    rawText = rawText.substring(firstBrace, lastBrace + 1);
+                }
+
+                JSON.parse(rawText);
+
+                return new Response(rawText, {
+                    status: 200,
+                    headers: corsHeaders
+                });
+            }
+        } catch (wechatErr) {
+            console.error("WeChat AI Engine fallback to Gemini:", wechatErr);
+        }
+
+        // 2. Fallback Engine: Google Gemini Flash
         const proxyHost = (env.PROXY_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
         const apiHost = proxyHost || 'generativelanguage.googleapis.com';
 
-        const fetchWithTimeout = async (url, options, timeoutMs = 4500) => {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), timeoutMs);
-            try {
-                const resp = await fetch(url, { ...options, signal: controller.signal });
-                clearTimeout(timer);
-                return resp;
-            } catch (err) {
-                clearTimeout(timer);
-                throw err;
-            }
-        };
-
-        const tasks = [];
-
-        // Engine 1: SiliconFlow Qwen2.5-7B-Instruct (⚡ Ultra-fast response)
-        if (SILICON_KEY) {
-            tasks.push((async () => {
-                const resp = await fetchWithTimeout("https://api.siliconflow.cn/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${SILICON_KEY}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "Qwen/Qwen2.5-7B-Instruct",
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: 0.7,
-                        max_tokens: maxTokens
-                    })
-                }, 2500);
-                if (!resp.ok) throw new Error(`SiliconFlow HTTP ${resp.status}`);
-                const data = await resp.json();
-                let raw = data?.choices?.[0]?.message?.content || "";
-                raw = raw.trim();
-                const firstBrace = raw.indexOf('{');
-                const lastBrace = raw.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    raw = raw.substring(firstBrace, lastBrace + 1);
-                }
-                JSON.parse(raw);
-                return raw;
-            })());
-        }
-
-        // Engine 2: Google Gemini 1.5 Flash (⚡ Ultra-fast)
-        if (GEMINI_KEY) {
-            tasks.push((async () => {
-                const geminiUrl = `https://${apiHost}/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-                const resp = await fetchWithTimeout(geminiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            temperature: 0.75,
-                            maxOutputTokens: maxTokens
-                        }
-                    })
-                }, 2500);
-                if (!resp.ok) throw new Error(`Gemini HTTP ${resp.status}`);
-                const data = await resp.json();
-                let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                raw = raw.trim();
-                const firstBrace = raw.indexOf('{');
-                const lastBrace = raw.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    raw = raw.substring(firstBrace, lastBrace + 1);
-                }
-                JSON.parse(raw);
-                return raw;
-            })());
-        }
-
-        // Engine 3: WeChat AI Deepseek-v4-flash
-        if (WECHAT_TOKEN) {
-            tasks.push((async () => {
-                const resp = await fetchWithTimeout("https://chatapi.weixin.qq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${WECHAT_TOKEN}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        model: "Deepseek-v4-flash",
-                        messages: [
-                            { role: "system", content: "You are an English learning assistant. Output ONLY valid JSON strings." },
-                            { role: "user", content: prompt }
-                        ],
-                        temperature: 0.85,
-                        max_tokens: maxTokens
-                    })
-                }, 2500);
-                if (!resp.ok) throw new Error(`WeChat AI HTTP ${resp.status}`);
-                const data = await resp.json();
-                let raw = data?.choices?.[0]?.message?.content || "";
-                raw = raw.trim();
-                if (raw.startsWith("```")) raw = raw.replace(/^```[a-zA-Z]*\n?/, "");
-                if (raw.endsWith("```")) raw = raw.replace(/```$/, "");
-                raw = raw.trim();
-                const firstBrace = raw.indexOf('{');
-                const lastBrace = raw.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace !== -1) {
-                    raw = raw.substring(firstBrace, lastBrace + 1);
-                }
-                JSON.parse(raw);
-                return raw;
-            })());
-        }
-
-        try {
-            const fastestWinnerJson = await Promise.any(tasks);
-            return new Response(fastestWinnerJson, {
-                status: 200,
-                headers: corsHeaders
-            });
-        } catch (anyErr) {
-            console.warn("All remote AI APIs failed or timed out, triggering instant fallback synthesizer:", anyErr);
-            
-            const wordNames = parsedWords.map(w => w.word);
-            const highlighted = wordNames.map(w => `<strong>${w}</strong>`);
-            const story = `In a creative study scene, we learn to connect ${highlighted.join(', ')} together. Stay focused, and you will achieve great triumph!`;
-            const translation = `在富于创意的学习场景中，我们将这些生词串联记忆。保持专注，你终将取得辉煌成就！`;
-            
-            const fallbackWords = parsedWords.map(w => ({
-                word: w.word,
-                ipa: "/ˈdɪl.ɪ.dʒənt/",
-                pos: "n./v./adj.",
-                definition: w.specifiedMeaning || "核心常用释义",
-                sentence: `Always practice using ${w.word} in your daily study.`,
-                alt_meanings: [
-                    { pos: "n.", def: "延伸释义一" },
-                    { pos: "v.", def: "延伸释义二" }
-                ]
-            }));
-
-            const fallbackResult = JSON.stringify({
-                story: story,
-                story_translation: translation,
-                words: fallbackWords
-            });
-
-            return new Response(fallbackResult, {
-                status: 200,
+        if (!GEMINI_KEY) {
+            return new Response(JSON.stringify({ error: 'AI generation service temporarily unavailable.' }), {
+                status: 500,
                 headers: corsHeaders
             });
         }
+
+        const response = await fetch(`https://${apiHost}/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        parts: [
+                            {
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    temperature: 0.92,
+                    topP: 0.95
+                }
+            })
+        });
+        
+        const respText = await response.text();
+        if (response.status !== 200) {
+            throw new Error(`Gemini API error (HTTP ${response.status}): ${respText}`);
+        }
+        
+        const data = JSON.parse(respText);
+        let jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        jsonText = jsonText.trim();
+        const firstBrace = jsonText.indexOf('{');
+        const lastBrace = jsonText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+        }
+        
+        JSON.parse(jsonText);
+        
+        return new Response(jsonText, {
+            status: 200,
+            headers: corsHeaders
+        });
         
     } catch (e) {
         console.error('Execution failed:', e);
