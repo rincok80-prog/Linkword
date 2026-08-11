@@ -54,7 +54,8 @@ Page({
     filteredVocabList: [],
     storyLengthValue: 2,
     storyLength: "medium",
-    storyLengthInfo: { icon: '📖', title: '标准故事', desc: '3-4 句' }
+    storyLengthInfo: { icon: '📖', title: '标准故事', desc: '3-4 句' },
+    showLengthSlider: false
   },
 
   vocabSearchTimer: null,
@@ -884,6 +885,12 @@ Page({
       console.error('Read file error:', e);
       this.showErrorModal('读取失败', '读取图片数据失败，请重试。');
     }
+  },
+
+  toggleLengthSlider() {
+    this.setData({
+      showLengthSlider: !this.data.showLengthSlider
+    });
   },
 
   onLengthSliderChanging(e) {

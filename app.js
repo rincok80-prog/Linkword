@@ -374,6 +374,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // Toggle Slider Visibility
+        const sliderToggleHeader = document.getElementById('slider-toggle-header');
+        const sliderExpandBody = document.getElementById('slider-expand-body');
+        const sliderToggleText = document.getElementById('slider-toggle-text');
+        const sliderToggleArrow = document.getElementById('slider-toggle-arrow');
+
+        if (sliderToggleHeader && sliderExpandBody) {
+            sliderToggleHeader.addEventListener('click', () => {
+                const isHidden = sliderExpandBody.classList.toggle('hidden');
+                if (sliderToggleText) sliderToggleText.textContent = isHidden ? '调节' : '收起';
+                if (sliderToggleArrow) sliderToggleArrow.textContent = isHidden ? '▼' : '▲';
+            });
+        }
+
         // Main generation trigger
         elements.generateBtn.addEventListener('click', handleGeneration);
 
