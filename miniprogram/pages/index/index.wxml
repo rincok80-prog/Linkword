@@ -116,7 +116,7 @@
     <view class="empty-state" wx:if="{{showEmptyState && !isGenerating}}">
       <view class="empty-icon">💡</view>
       <text class="empty-title">联想背单词</text>
-      <text class="empty-desc">输入 2 个或更多英文单词，AI 将其串联成一段生动的趣味小故事，帮您轻松记住！</text>
+      <text class="empty-desc">输入 2 个或更多英文单词，智能算法将其串联成一段生动的趣味小故事，帮您轻松记住！</text>
     </view>
 
     <!-- Organic Story Atelier Loading Card -->

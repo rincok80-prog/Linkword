@@ -1242,25 +1242,6 @@ JSON Schema 结构：
 
         elements.emptyState.classList.add('hidden');
         elements.outputPanel.classList.remove('hidden');
-
-        if (typeof anime !== 'undefined') {
-            anime({
-                targets: '#story-card',
-                opacity: [0, 1],
-                translateY: [20, 0],
-                easing: 'easeOutQuad',
-                duration: 600
-            });
-
-            anime({
-                targets: '.vocab-card',
-                opacity: [0, 1],
-                translateY: [24, 0],
-                delay: anime.stagger(90),
-                easing: 'easeOutQuart',
-                duration: 650
-            });
-        }
     }
 
     // ==========================================

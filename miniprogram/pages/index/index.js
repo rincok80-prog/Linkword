@@ -9,7 +9,7 @@ const loadingTips = [
   "正在翻阅字典寻找最准确的音标解释...",
   "正在把生词精心编织进简单好懂的句子...",
   "正在优化故事的中文翻译，确保通俗易懂...",
-  "AI 老师正在为您生成朗读发音数据..."
+  "智能学习助手正在为您生成朗读发音数据..."
 ];
 
 const LENGTH_MAP = {
@@ -1783,8 +1783,8 @@ Page({
   onShareAppMessage() {
     const words = this.data.vocabList.map(item => item.word).slice(0, 3).join(', ');
     const shareTitle = words 
-      ? `【趣味记忆】我用 AI 趣味记住了：${words} 等单词，快来看看故事吧！`
-      : `【LinkWord 联想记忆】输入几个单词，AI 帮您串联成好记的情境小故事！`;
+      ? `【趣味记忆】我用智能情境记住了：${words} 等单词，快来看看故事吧！`
+      : `【LinkWord 联想记忆】输入几个单词，智能算法帮您串联成好记的情境小故事！`;
     return {
       title: shareTitle,
       path: '/pages/index/index'
@@ -1794,7 +1794,7 @@ Page({
   onShareTimeline() {
     const words = this.data.vocabList.map(item => item.word).slice(0, 3).join(', ');
     return {
-      title: words ? `趣味联想记词：${words}` : 'LinkWord AI 联想背单词软件',
+      title: words ? `趣味联想记词：${words}` : 'LinkWord 智能联想背单词软件',
       query: ''
     };
   }
