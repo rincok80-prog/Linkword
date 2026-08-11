@@ -946,9 +946,14 @@ Page({
 
   // Main generator trigger
   handleGeneration() {
-    if (this.data.isGenerating) return;
+    console.log('[LinkWord] handleGeneration clicked! isGenerating:', this.data.isGenerating, 'wordsInputValue:', this.data.wordsInputValue);
 
-    const rawInput = this.data.wordsInputValue.trim();
+    if (this.data.isGenerating) {
+      console.warn('[LinkWord] Request is already in progress, please wait.');
+      return;
+    }
+
+    const rawInput = (this.data.wordsInputValue || '').trim();
     if (!rawInput) {
       wx.showToast({
         title: '请输入英文单词',
@@ -1000,6 +1005,8 @@ Page({
     });
     this.startLoadingTips();
 
+    console.log('[LinkWord] Requesting:', `${app.globalData.apiHost}/api/generate`, { words, wordDefs });
+
     wx.request({
       url: `${app.globalData.apiHost}/api/generate`,
       method: 'POST',
@@ -1013,7 +1020,6 @@ Page({
         length: this.data.storyLength || 'medium'
       },
       success: (res) => {
-        this.stopLoadingTips();
         console.log('[LinkWord] Generate Response status:', res.statusCode, res.data);
         if (res.statusCode !== 200) {
           const errMsg = res.data && res.data.error ? res.data.error : `HTTP ${res.statusCode}`;
@@ -1023,56 +1029,60 @@ Page({
             showCancel: false
           });
           this.setData({
-            isGenerating: false,
             showEmptyState: true
           });
           return;
         }
 
-        let data = res.data;
-        if (typeof data === 'string') {
-          try {
+        try {
+          let data = res.data;
+          if (typeof data === 'string') {
             data = JSON.parse(data);
-          } catch(e) {
-            console.error('JSON parse error on res.data:', e);
           }
-        }
 
-        if (!data || (!data.story && (!data.words || data.words.length === 0))) {
-          wx.showModal({
-            title: '解析失败',
-            content: '返回数据格式不完整，请重试。',
-            showCancel: false
-          });
+          if (!data || (!data.story && (!data.words || data.words.length === 0))) {
+            wx.showModal({
+              title: '解析失败',
+              content: '返回数据格式不完整，请重试。',
+              showCancel: false
+            });
+            this.setData({
+              showEmptyState: true
+            });
+            return;
+          }
+
+          this.renderResult(data);
+          this.saveHistoryItem(words, data);
           this.setData({
-            isGenerating: false,
+            showOutput: true
+          });
+          wx.showToast({
+            title: '生成成功！',
+            icon: 'success'
+          });
+        } catch (renderErr) {
+          console.error('[LinkWord] Render error:', renderErr);
+          this.setData({
             showEmptyState: true
           });
-          return;
         }
-
-        this.renderResult(data);
-        this.saveHistoryItem(words, data);
-        this.setData({
-          isGenerating: false,
-          showOutput: true
-        });
-        wx.showToast({
-          title: '生成成功！',
-          icon: 'success'
-        });
       },
       fail: (err) => {
-        this.stopLoadingTips();
-        console.error('Generation Failed:', err);
+        console.error('[LinkWord] Generation Request Failed:', err);
         wx.showModal({
           title: '网络失败',
-          content: '生成接口失败，请检查手机网络配置，或检查小程序后台合法域名配置。',
+          content: '生成接口请求失败，请检查微信开发者工具是否开启「不校验合法域名」，或检查手机网络。',
           showCancel: false
         });
         this.setData({
-          isGenerating: false,
           showEmptyState: true
+        });
+      },
+      complete: () => {
+        this.stopLoadingTips();
+        this.setData({
+          isGenerating: false
         });
       }
     });

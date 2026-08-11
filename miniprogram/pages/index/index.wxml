@@ -40,7 +40,7 @@
       </view>
 
       <view class="textarea-wrapper">
-        <textarea id="words-input" class="words-textarea" placeholder="例如: bank (河岸), spring (弹簧), obsolete..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" maxlength="-1" />
+        <textarea id="words-input" class="words-textarea" placeholder="例如: bank (河岸), spring (弹簧), obsolete..." placeholder-class="textarea-placeholder" value="{{wordsInputValue}}" bindinput="onWordsInput" bindblur="onWordsInput" bindconfirm="onWordsInput" maxlength="-1" />
       </view>
 
       <!-- Tool Bar (OCR + Word Index) -->
